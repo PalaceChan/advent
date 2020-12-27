@@ -1,5 +1,6 @@
 ## Imports
-import os, re, math, copy, functools, itertools as it
+import os, re, math, copy, functools, numba, itertools as it, numpy as np
+from tqdm import tqdm
 from collections import defaultdict, OrderedDict, deque
 
 ## Problem 1
@@ -1520,7 +1521,159 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
         s += (len(fpw) - i) * int(c)
     print(s)    
 
-## Problem 23
-if input := "389125467":
-    pass
+## Problem 23 I
+#"389125467":
+if input := "327465189":
+    l = [int(c) for c in input]
+    m = min(l)
+    x = max(l)
+    n = len(l)
+    l = [l, copy.copy(l)]
+    i, j = 0, 0
+
+    for move in tqdm(range(100)):
+        k = None
+        s = l[i][j] - 1
+        s = x if s < m else s
+        oi = (i+1) % 2
+        pu = ((j+1) % n, (j+2) % n, (j+3) % n)        
+
+        #find destination, k
+        while k is None:
+            try:
+                k = l[i].index(s)
+            except ValueError:
+                s = x if (s-1) < m else (s-1)
+                continue
+            if k in pu:
+                s = x if (s-1) < m else (s-1)
+                k = None
+                continue
+
+        # print(f"-- move {move+1} --")
+        # print(f"cups: {l[i]}, curr={l[i][j]}")
+        # print(f"pick up: {l[i][pu[0]]}, {l[i][pu[1]]}, {l[i][pu[2]]}")
+        # print(f"destination: {l[i][k]}\n")
+
+        #curr cup goes to same position
+        jj = j
+        l[oi][jj] = l[i][jj]
+        layed = 1
+        
+        #skip pu and lay cups, break after laying down cup k
+        jjo = (jj + 1) % n
+        jji = (jj + 4) % n
+        for _ in range(n+1):
+            l[oi][jjo] = l[i][jji]
+            layed = layed + 1
+            if jji == k:
+                jji, jjo = (jji + 1) % n, (jjo + 1) % n
+                break                
+            jji, jjo = (jji + 1) % n, (jjo + 1) % n
+        else:
+            assert(False)
+
+        #lay the pu cups
+        for u in pu:
+            l[oi][jjo] = l[i][u]
+            layed = layed + 1            
+            jjo = (jjo + 1) % n
+
+        #lay any remaining cups
+        while layed < n:
+            l[oi][jjo] = l[i][jji]
+            layed += 1
+            jji, jjo = (jji + 1) % n, (jjo + 1) % n            
+
+        #toggle lists and move current 
+        i = (i+1) % 2
+        j = (j+1) % n
+
+
+    j1 = l[i].index(1)
+    fl = [str(l[i][(j1 + off) % n]) for off in range(1,n)]
     
+    print(f"-- final --")
+    print(f"cups: {l[i]}")
+    print(f"{''.join(fl)}")
+        
+## Problem 23 II
+#"327465189":
+if input := "389125467":
+    l = [int(c) for c in input]
+    x = max(l)
+    
+    tail = [x+i-len(l)+1 for i in range(len(l), 1000*1000)]
+    l.extend(tail)
+
+    m = min(l)
+    x = max(l)    
+    n = len(l)
+    l = [l, copy.copy(l)]
+    i, j = 0, 0
+
+    for move in tqdm(range(10*1000*1000), file=sys.stdout):
+    # for move in range(1000):
+        # if move in {0, 1, 2, 3, 4}:
+        #     print(" ".join([str(foo) for foo in l[i]]))
+        k = None
+        s = l[i][j] - 1
+        s = x if s < m else s
+        oi = (i+1) % 2
+        pu = ((j+1) % n, (j+2) % n, (j+3) % n)        
+
+        #find destination, k
+        while k is None:
+            try:
+                k = l[i].index(s)
+            except ValueError:
+                s = x if (s-1) < m else (s-1)
+                continue
+            if k in pu:
+                s = x if (s-1) < m else (s-1)
+                k = None
+                continue
+
+        # print(f"-- move {move+1} --")
+        # print(f"cups: {l[i]}, curr={l[i][j]}")
+        # print(f"pick up: {l[i][pu[0]]}, {l[i][pu[1]]}, {l[i][pu[2]]}")
+        # print(f"destination: {l[i][k]}\n")            
+
+        #curr cup goes to same position
+        jj = j
+        l[oi][jj] = l[i][jj]
+        layed = 1
+        
+        #skip pu and lay cups, break after laying down cup k
+        jjo = (jj + 1) % n
+        jji = (jj + 4) % n
+        for _ in range(n+1):
+            l[oi][jjo] = l[i][jji]
+            layed = layed + 1
+            if jji == k:
+                jji, jjo = (jji + 1) % n, (jjo + 1) % n
+                break                
+            jji, jjo = (jji + 1) % n, (jjo + 1) % n
+        else:
+            assert(False)
+
+        #lay the pu cups
+        for u in pu:
+            l[oi][jjo] = l[i][u]
+            layed = layed + 1            
+            jjo = (jjo + 1) % n
+
+        #lay any remaining cups
+        while layed < n:
+            l[oi][jjo] = l[i][jji]
+            layed += 1
+            jji, jjo = (jji + 1) % n, (jjo + 1) % n            
+
+        #toggle lists and move current 
+        i = (i+1) % 2
+        j = (j+1) % n            
+
+    j1 = l[i].index(1)
+    fl1, fl2 = l[i][(j1+1) % n], l[i][(j1+2) % n]
+    print(f"{fl1} * {fl2} = {fl1 * fl2}")
+

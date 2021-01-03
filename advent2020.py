@@ -1,5 +1,5 @@
 ## Imports
-import os, re, math, copy, functools, numba, itertools as it, numpy as np
+import os, re, math, copy, functools, itertools as it, numpy as np
 from tqdm import tqdm
 from collections import defaultdict, OrderedDict, deque
 
@@ -1598,82 +1598,78 @@ if input := "327465189":
     print(f"{''.join(fl)}")
         
 ## Problem 23 II
-#"327465189":
-if input := "389125467":
+# time ./a.out 327465189
+# 749102 * 633559 = 474600314018
+# real 960m15.471s
+if input := "327465189":
     l = [int(c) for c in input]
     x = max(l)
     
     tail = [x+i-len(l)+1 for i in range(len(l), 1000*1000)]
     l.extend(tail)
-
     m = min(l)
     x = max(l)    
     n = len(l)
-    l = [l, copy.copy(l)]
-    i, j = 0, 0
+    ll = [[(i+1) % n, v] for i,v in enumerate(l)]
 
+    def find_first(ll, s):
+        d = 0
+        for _ in range(len(ll)):
+            nxt, v = ll[d]
+            if v == s:
+                return d
+            d = nxt
+        else:
+            return None
+
+    def dump_list(ll):
+        oss = ""
+        cur = 0
+        for i in range(len(ll)):
+            oss = oss + str(ll[cur][1]) + " "
+            cur = ll[cur][1]
+        print(f"{oss}")
+
+    cur = 0        
     for move in tqdm(range(10*1000*1000), file=sys.stdout):
     # for move in range(1000):
-        # if move in {0, 1, 2, 3, 4}:
-        #     print(" ".join([str(foo) for foo in l[i]]))
-        k = None
-        s = l[i][j] - 1
+        # dump_list(ll)
+        s = ll[cur][1] - 1
         s = x if s < m else s
-        oi = (i+1) % 2
-        pu = ((j+1) % n, (j+2) % n, (j+3) % n)        
+        nxt1 = ll[cur][0]
+        nxt2 = ll[nxt1][0]
+        nxt3 = ll[nxt2][0]
+        nxt4 = ll[nxt3][0]
+        pu = (nxt1, nxt2, nxt3)
 
-        #find destination, k
-        while k is None:
-            try:
-                k = l[i].index(s)
-            except ValueError:
+        #find destination, dst
+        dst = None
+        while dst is None:
+            dst = find_first(ll, s)
+            if dst is None:
                 s = x if (s-1) < m else (s-1)
                 continue
-            if k in pu:
+            elif dst in pu:
                 s = x if (s-1) < m else (s-1)
-                k = None
+                dst = None
                 continue
 
-        # print(f"-- move {move+1} --")
-        # print(f"cups: {l[i]}, curr={l[i][j]}")
-        # print(f"pick up: {l[i][pu[0]]}, {l[i][pu[1]]}, {l[i][pu[2]]}")
-        # print(f"destination: {l[i][k]}\n")            
+        #curr cup next points to nxt4 and nxt4 prev to curr
+        ll[cur][0] = nxt4
 
-        #curr cup goes to same position
-        jj = j
-        l[oi][jj] = l[i][jj]
-        layed = 1
+        #link pu triplet dst -> nxt1 -> ... -> nxt3 -> ndst
+        ndst = ll[dst][0]
+        ll[dst][0] = nxt1
+        ll[nxt3][0] = ndst
         
-        #skip pu and lay cups, break after laying down cup k
-        jjo = (jj + 1) % n
-        jji = (jj + 4) % n
-        for _ in range(n+1):
-            l[oi][jjo] = l[i][jji]
-            layed = layed + 1
-            if jji == k:
-                jji, jjo = (jji + 1) % n, (jjo + 1) % n
-                break                
-            jji, jjo = (jji + 1) % n, (jjo + 1) % n
-        else:
-            assert(False)
+        #move cur ahead
+        cur = nxt4
+        
 
-        #lay the pu cups
-        for u in pu:
-            l[oi][jjo] = l[i][u]
-            layed = layed + 1            
-            jjo = (jjo + 1) % n
-
-        #lay any remaining cups
-        while layed < n:
-            l[oi][jjo] = l[i][jji]
-            layed += 1
-            jji, jjo = (jji + 1) % n, (jjo + 1) % n            
-
-        #toggle lists and move current 
-        i = (i+1) % 2
-        j = (j+1) % n            
-
-    j1 = l[i].index(1)
-    fl1, fl2 = l[i][(j1+1) % n], l[i][(j1+2) % n]
+    j1 = find_first(ll, 1)
+    j1nxt1 = ll[j1][0]
+    j1nxt2 = ll[j1nxt1][0]
+    fl1, fl2 = ll[j1nxt1][1], ll[j1nxt2][1]
     print(f"{fl1} * {fl2} = {fl1 * fl2}")
 
+## Problem 24

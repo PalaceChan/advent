@@ -4,10 +4,9 @@
 #include <assert.h>
 
 #define N (1000*1000)
-#define M (10000)//(10*1000*1000)
+#define M (10*1000*1000)
 
 struct LinkedList {
-    struct LinkedList* prv;
     struct LinkedList* nxt;
     int val;
 };
@@ -51,7 +50,6 @@ void p23II(const char* input)
 	    ll[i].val = i + 1;
 	}
 
-	ll[i].prv = &ll[(i-1) % N];
 	ll[i].nxt = &ll[(i+1) % N];
     }
 
@@ -76,13 +74,10 @@ void p23II(const char* input)
 	assert(dst && dst != nxt1 && dst != nxt2 && dst != nxt3);
 
 	cur->nxt = nxt4;
-	nxt4->prv = cur;
 
 	Node* ndst = dst->nxt;
 	dst->nxt = nxt1;
-	nxt1->prv = dst;
 	nxt3->nxt = ndst;
-	ndst->prv = nxt3;
 
 	cur = nxt4;
 	/* printf("stop: "); */

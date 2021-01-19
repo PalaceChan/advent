@@ -1673,3 +1673,105 @@ if input := "327465189":
     print(f"{fl1} * {fl2} = {fl1 * fl2}")
 
 ## Problem 24
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    def parse_tiles(l):
+        tiles = []
+        cands = ["se", "sw", "nw", "ne", "e", "w"]
+        i = 0
+        for _ in range(100):
+            for cand in cands:
+                if i + len(cand) <= len(l) and l[i:(i+len(cand))] == cand:
+                    tiles.append(cand)
+                    i += len(cand)
+                    break
+            else:
+                assert i == len(l), f"i is only {i}"
+                break
+                
+        return tiles
+    
+    all_tiles = []
+    for l in f:
+        tiles = parse_tiles(l.rstrip())
+        all_tiles.append(tiles)
+
+    dirs = {
+        "e": [math.cos(0 * math.pi / 3), math.sin(0 * math.pi / 3)],
+        "ne": [math.cos(1 * math.pi / 3), math.sin(1 * math.pi / 3)],
+        "nw": [math.cos(2 * math.pi / 3), math.sin(2 * math.pi / 3)],
+        "w": [math.cos(3 * math.pi / 3), math.sin(3 * math.pi / 3)],
+        "sw": [math.cos(4 * math.pi / 3), math.sin(4 * math.pi / 3)],
+        "se": [math.cos(5 * math.pi / 3), math.sin(5 * math.pi / 3)],
+    }
+    
+    def hop_tiles(tiles):
+        pos = [0, 0]
+        for t in tiles:
+            pos[0] = pos[0] + dirs[t][0]
+            pos[1] = pos[1] + dirs[t][1]
+        return pos
+
+    prec = 10
+    tiles_flipped = defaultdict(list)
+    for tiles in all_tiles:
+        end = hop_tiles(tiles)
+        end_key = (round(end[0], prec), round(end[1], prec))
+        tiles_flipped[end_key].append(end)
+
+    # print(sum([len(v) % 2 for v in tiles_flipped.values()]))
+    class HackyTile:
+        def __init__(self, k, x, y):
+            self.key = k
+            self.x = x
+            self.y = y
+
+        def __hash__(self):
+            return hash(self.key)
+
+        def __eq__(self, other):
+            if not isinstance(other, type(self)): return NotImplemented
+            return self.key == other.key
+    
+    day = 0
+    blacks_per_day = defaultdict(set)
+    for k, v in tiles_flipped.items():
+        if len(v) % 2 == 1:
+            blacks_per_day[day].add(HackyTile(k, v[0][0], v[0][1]))
+
+    for day in range(1, 101):
+        black_neighbors = defaultdict(list)
+        prev_day_blacks = blacks_per_day[day-1]
+
+        #initialize dict with self and no known neighbors...
+        for black in prev_day_blacks:
+            if not black_neighbors[black]:
+                black_neighbors[black].append([True, 0])
+            else:
+                black_neighbors[black][0][0] = True
+                black_neighbors[black][0][1] = 0
+            
+        #label all neighbors of the black tiles by their tile color and accum their adj blacks
+        for black in prev_day_blacks:
+            for d in dirs.values():
+                nbr_x, nbr_y = black.x + d[0], black.y + d[1]
+                nbr_k = (round(nbr_x, prec), round(nbr_y, prec))
+                nbr = HackyTile(nbr_k, nbr_x, nbr_y)
+                if not black_neighbors[nbr]:
+                    black_neighbors[nbr].append([nbr in prev_day_blacks, 1])
+                else:
+                    black_neighbors[nbr][0][0] = nbr in prev_day_blacks
+                    black_neighbors[nbr][0][1] = black_neighbors[nbr][0][1] + 1
+
+        next_day_blacks = set()
+        for k in black_neighbors.keys():
+            is_black, num_black_neighbors = black_neighbors[k][0]
+            if is_black and (num_black_neighbors == 1 or num_black_neighbors == 2):
+                next_day_blacks.add(k)
+            elif not is_black and num_black_neighbors == 2:
+                next_day_blacks.add(k)
+
+        blacks_per_day[day] = next_day_blacks
+        print(f"Day {day}: {len(next_day_blacks)}")
+        if day > 1000:
+            break
+    

@@ -1775,3 +1775,30 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
         if day > 1000:
             break
     
+## Problem 25
+#if input := (5764801, 17807724):
+if input := (5099500, 7648211):
+    c_pub = input[0]
+    d_pub = input[1]
+
+    def encode(x, loop_size):
+        val = 1
+        for i in range(loop_size):
+            val = (val * x) % 20201227
+        return val
+
+    def get_loop_size(pub_key):
+        val = 1
+        for i in range(1, 100000000):
+            val = (val * 7) % 20201227
+            if val == pub_key:
+                return i
+        else:
+            assert False
+    
+    c_lup = get_loop_size(c_pub)
+    d_lup = get_loop_size(d_pub)
+
+    c_prv = encode(d_pub, c_lup)
+    d_prv = encode(c_pub, d_lup)
+    print(c_prv, d_prv)

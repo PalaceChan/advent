@@ -1,6 +1,6 @@
 ## Imports
 import os, re, math, copy, functools, itertools as it, numpy as np
-from tqdm import tqdm
+# from tqdm import tqdm
 from collections import defaultdict, OrderedDict, deque
 
 ##Problem 1
@@ -537,3 +537,46 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
             mp = phases
     print(f"max signal {mo} from {mp}")
 
+##Problem 8
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    input = f.readlines()[0].rstrip()
+    w, h = 25, 6
+
+    row = []
+    layer = []
+    layers = []
+    for i, p in enumerate(input):
+        row.append(int(p))
+        if (i+1) % w == 0:
+            layer.append(row)
+            row = []
+        if (i+1) % (w * h) == 0:
+            layers.append(layer)
+            layer = []
+
+    min_zero = math.inf
+    min_zero_idx = None
+    for i, l in enumerate(layers):
+        num_zeros = 0
+        for r in l:
+            num_zeros += sum([p == 0 for p in r])
+        if num_zeros < min_zero:
+            min_zero = num_zeros
+            min_zero_idx = i
+
+    num_wans = 0
+    num_twos = 0
+    for r in layers[min_zero_idx]:
+        num_wans += sum([p == 1 for p in r])
+        num_twos += sum([p == 2 for p in r])
+    print(f"{num_wans} * {num_twos} = {num_wans * num_twos}")
+
+    layer = [[-1] * w for _ in range(h)]
+    for i, j in it.product(range(h), range(w)):
+        p = None
+        for k, l in enumerate(layers):
+            if l[i][j] != 2:
+                # print(f"layer {k} at pos (h={i},w={j}) has pixel {l[i][j]} so setting that boy and breaking")
+                layer[i][j] = l[i][j]
+                break
+    print(layer)

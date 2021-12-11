@@ -144,6 +144,7 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
 ## Problem 4
 import numpy as np
+
 with open(f"{os.getcwd()}/input.txt", "r") as f:
     lines = f.readlines()
     moves = [int(x) for x in lines[0].rstrip().split(',')]
@@ -188,3 +189,91 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
                    print(f'board {i} wins first, score = {score}')
                elif all(done):
                    print(f'board {i} wins last, score = {score}')
+
+## Problem 5
+import re
+import numpy as np
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    segs = []
+    maxv = 0
+    for l in f:
+        m = re.match(r'(\d+),(\d+) -> (\d+),(\d+)', l)
+        seg = [int(i) for i in m.groups()]
+        segs.append(seg)
+        maxv = max(maxv, max(seg))
+
+    # Part I
+    g = np.zeros((maxv+1, maxv+1))
+    for seg in segs:
+        if seg[0] == seg[2] and seg[1] != seg[3]: # vertical
+            a, b = min(seg[1], seg[3]), max(seg[1], seg[3])
+            g[a:(b+1), seg[0]] += 1
+        elif seg[1] == seg[3] and seg[0] != seg[2]: # horizontal
+            a, b = min(seg[0], seg[2]), max(seg[0], seg[2])
+            g[seg[1], a:(b+1)] += 1
+
+    min_two_overlap = np.sum(g >= 2)
+
+    # Part II
+    g = np.zeros((maxv+1, maxv+1))
+    for seg in segs:
+        if seg[0] == seg[2] and seg[1] != seg[3]: # vertical
+            a, b = min(seg[1], seg[3]), max(seg[1], seg[3])
+            g[a:(b+1), seg[0]] += 1
+        elif seg[1] == seg[3] and seg[0] != seg[2]: # horizontal
+            a, b = min(seg[0], seg[2]), max(seg[0], seg[2])
+            g[seg[1], a:(b+1)] += 1
+        elif abs(seg[0] - seg[2]) == abs(seg[1] - seg[3]): # diagonal
+            # print(seg)
+            step = abs(seg[0] - seg[2])
+            xsgn = np.sign(seg[2] - seg[0])
+            ysgn = np.sign(seg[3] - seg[1])
+            for i in range(step+1):
+                # print(f'marking {seg[0] +i*xsgn}, {seg[1] + i*ysgn}')
+                g[seg[1] + i*ysgn, seg[0] +i*xsgn] += 1
+        else:
+            print(seg)
+            assert(False)
+
+    min_two_overlap = np.sum(g >= 2)
+
+## Problem 6
+import numpy as np
+from collections import Counter
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    l = f.readlines()[0].rstrip()
+
+    # Part I ndays = 80
+    def solve_naive(l, ndays):
+        x = np.array([int(c) for c in l.split(',')])
+        # print(f'start: {x}')
+        for i in range(1, ndays + 1):
+            x -= 1
+            spawn = np.sum(x == -1)
+            x[x == -1] = 6
+            x = np.append(x, np.repeat(8, spawn))
+            # print(f'After {i} days {x}')
+
+        return x.size
+
+    def solve_less_naive(l, ndays):
+        cnt = Counter([int(c) for c in l.split(',')])
+        # print(f'start: {cnt}')
+        while ndays > 0:
+            min_key = min(cnt.keys())
+            his_val = cnt[min_key]
+            days_to_jump = min(ndays, min_key + 1)
+
+            ndays -= days_to_jump
+            alive_cnt = {k - days_to_jump: v for k,v in cnt.items() if k >= days_to_jump}
+            reset_cnt = {6: v for k,v in cnt.items() if k < days_to_jump}
+            birth_cnt = {8: reset_cnt.get(6, 0)}
+            cnt = {i: alive_cnt.get(i, 0) + reset_cnt.get(i, 0) + birth_cnt.get(i, 0) for i in range(9)}
+            # print(f'After {days_to_jump} days {cnt}')
+
+        return np.sum([v for v in cnt.values()])
+
+    print(solve_naive(l, 80))
+    print(solve_less_naive(l, 256))

@@ -277,3 +277,35 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
     print(solve_naive(l, 80))
     print(solve_less_naive(l, 256))
+
+## Problem 7
+import numpy as np
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    pos = np.array([int(c) for c in f.readlines()[0].rstrip().split(',')])
+
+    def solve_constant():
+        i, j = np.min(pos), np.max(pos)
+        res = np.zeros(j+1-i)
+        for k in range(i,j+1):
+            res[k-i] = np.sum(np.abs(pos - k))
+
+        best_pos = np.argmin(res) + i
+        best_res = res[best_pos]
+        print(f'align at {best_pos} for fuel of {best_res}')
+
+    def solve_arithmetic():
+        def calc_fuel_cost(n):
+            return n/2 * (2 + (n - 1))
+
+        i, j = np.min(pos), np.max(pos)
+        res = np.zeros(j+1-i)
+        for k in range(i,j+1):
+            res[k-i] = sum([calc_fuel_cost(n) for n in np.abs(pos - k)])
+
+        best_pos = np.argmin(res) + i
+        best_res = res[best_pos]
+        print(f'align at {best_pos} for fuel of {best_res}')
+
+    solve_constant()
+    solve_arithmetic()

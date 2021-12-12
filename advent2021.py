@@ -429,3 +429,44 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
         cnts[(a,b)] += 1
 
     print(np.prod(sorted(cnts.values())[-3:]))
+
+## Problem 10
+from collections import deque
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    ls = [l.rstrip() for l in f.readlines()]
+
+    otc = {k:v for k,v in zip('([{<', ')]}>')}
+    cto = {v:k for k,v in otc.items()}
+    its = {k:v for k,v in zip(')]}>', [3, 57, 1197, 25137])}
+    def p1_score(l):
+        stack = deque()
+        for x in l:
+            if x in otc.keys():
+                stack.append(x)
+            elif x in cto.keys():
+                o = cto[x]
+                if len(stack) == 0 or stack.pop() != o:
+                    return its[x]
+        else:
+            return 0
+
+    scores1 = [p1_score(l) for l in ls]
+    # print(f'part i score {sum(scores1)}')
+
+    its = {k:v for k,v in zip(')]}>', [1, 2, 3, 4])}
+    def p2_solve(l):
+        stack = deque()
+        for x in l:
+            if x in otc.keys():
+                stack.append(x)
+            else:
+                stack.pop()
+        fin = [otc[x] for x in list(stack)[::-1]]
+        scr = 0
+        for x in fin:
+            scr = 5*scr + its[x]
+        return (fin, scr)
+
+    scores2 = [p2_solve(ls[i]) for i in range(len(scores1)) if scores1[i] == 0]
+    # print(f'part ii {np.median([v for _,v in scores2])}')

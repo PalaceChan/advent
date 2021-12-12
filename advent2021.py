@@ -387,3 +387,45 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
                 if cnts[len(s)] == 1:
                     n += 1
         return n
+
+## Problem 9
+import numpy as np
+import itertools as it
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    m = np.stack([np.array([int(c) for c in l.rstrip()]) for l in f])
+
+    lows = []
+    for i, j in it.product(range(m.shape[0]), range(m.shape[1])):
+        x = m[i,j]
+        if i-1 >= 0 and m[i-1, j] <= x:
+            continue
+        if j-1 >= 0 and m[i, j-1] <= x:
+            continue
+        if i+1 < m.shape[0] and m[i+1, j] <= x:
+            continue
+        if j+1 < m.shape[1] and m[i, j+1] <= x:
+            continue
+        lows.append((i, j))
+
+    # print(f'part I {sum([m[i,j]+1 for i,j in lows])}')
+    cnts = {l: 1 for l in lows}
+    for i, j in it.product(range(m.shape[0]), range(m.shape[1])):
+        x = m[i,j]
+        if x == 9 or (i,j) in cnts:
+            continue
+        a, b, y = i, j, x
+        while (a,b) not in cnts:
+            if a-1 >= 0 and m[a-1, b] < y:
+                a, b, y = a-1, b, m[a-1, b]
+            elif b-1 >= 0 and m[a, b-1] < y:
+                a, b, y = a, b-1, m[a, b-1]
+            elif a+1 < m.shape[0] and m[a+1, b] < y:
+                a, b, y = a+1, b, m[a+1, b]
+            elif b+1 < m.shape[1] and m[a, b+1] < y:
+                a, b, y = a, b+1, m[a, b+1]
+            else:
+                assert(False)
+        cnts[(a,b)] += 1
+
+    print(np.prod(sorted(cnts.values())[-3:]))

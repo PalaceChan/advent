@@ -312,21 +312,9 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
 ## Problem 8
 from collections import Counter
+import itertools as it
 
 with open(f"{os.getcwd()}/input.txt", "r") as f:
-    segs = {
-        1 : 2,
-        7 : 3,
-        4 : 4,
-        2 : 5,
-        3 : 5,
-        5 : 5,
-        0 : 6,
-        6 : 6,
-        9 : 6,
-        8 : 7,
-    }
-    cnts = Counter(segs.values())
     xs = []
     ys = []
     for l in f:
@@ -334,8 +322,68 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
         xs.append(x.rstrip().split(' '))
         ys.append(y.lstrip().split(' '))
 
-    n = 0
-    for y in ys:
-        for s in y:
-            if cnts[len(s)] == 1:
-                n += 1
+    dfwd = {'0': 'abcefg',
+            '1': 'cf', #''.join(sorted('cf'))
+            '2': 'acdeg', #''.join(sorted('acdeg'))
+            '3': 'acdfg', #''.join(sorted('acdfg'))
+            '4': 'bcdf', #''.join(sorted('bcdf'))
+            '5': 'abdfg', #''.join(sorted('abdfg'))
+            '6': 'abdefg', #''.join(sorted('abdefg'))
+            '7': 'acf', #''.join(sorted('acf'))
+            '8': 'abcdefg',
+            '9': 'abcdfg', #''.join(sorted('abcdfg'))
+            }
+    drev = {v:k for k,v in dfwd.items()}
+
+    alp = 'abcdefg'
+    def brute(p, x, y):
+        p_to_alp = {k:v for k,v in zip(p, alp)}
+        used = set()
+        res = {}
+        for i, word in enumerate(x):
+            word2 = ''.join(sorted([p_to_alp[c] for c in word]))
+            if word2 not in used and word2 in drev:
+                used.add(word2)
+                res[''.join(sorted(word))] = drev[word2]
+            else:
+                return None
+        return res
+
+    def solve(x, y):
+        for p in it.permutations(alp):
+            res = brute(p, x, y)
+            if res is None:
+                continue
+            num = int(''.join([res[''.join(sorted(w))] for w in y]))
+            return num
+        else:
+            assert(False)
+
+    def part2():
+        sols = []
+        for x, y in zip(xs, ys):
+            sol = solve(x, y)
+            sols.append(sol)
+        return sum(sols)
+
+    def part1():
+        segs = {
+            1 : 2,
+            7 : 3,
+            4 : 4,
+            2 : 5,
+            3 : 5,
+            5 : 5,
+            0 : 6,
+            6 : 6,
+            9 : 6,
+            8 : 7,
+        }
+        cnts = Counter(segs.values())
+
+        n = 0
+        for y in ys:
+            for s in y:
+                if cnts[len(s)] == 1:
+                    n += 1
+        return n

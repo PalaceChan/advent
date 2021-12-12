@@ -309,3 +309,33 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
     solve_constant()
     solve_arithmetic()
+
+## Problem 8
+from collections import Counter
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    segs = {
+        1 : 2,
+        7 : 3,
+        4 : 4,
+        2 : 5,
+        3 : 5,
+        5 : 5,
+        0 : 6,
+        6 : 6,
+        9 : 6,
+        8 : 7,
+    }
+    cnts = Counter(segs.values())
+    xs = []
+    ys = []
+    for l in f:
+        x, y = l.rstrip().split('|')
+        xs.append(x.rstrip().split(' '))
+        ys.append(y.lstrip().split(' '))
+
+    n = 0
+    for y in ys:
+        for s in y:
+            if cnts[len(s)] == 1:
+                n += 1

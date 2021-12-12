@@ -511,3 +511,59 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
     # print(f'part i = {sum(fps[1:101])}')
     # print(f'part ii = {fps.index(100)}')
+
+## Problem 12
+from collections import defaultdict
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    opts = defaultdict(list)
+    smol = set()
+    for l in f:
+        a, b = l.rstrip().split('-')
+        opts[a].append(b)
+        opts[b].append(a)
+        if a == a.lower():
+            smol.add(a)
+        if b == b.lower():
+            smol.add(b)
+
+    sols = []
+
+    def solve1(path, smalls):
+        global sols
+        for opt in opts[path[-1]]:
+            if opt == 'end':
+                sol = path + [opt]
+                sols.append(sol)
+            elif opt not in smalls:
+                npath = path + [opt]
+                nsmlls = smalls.union({opt}) if opt in smol else smalls
+                solve1(npath, nsmlls)
+
+    # solve1(['start'], {'start'})
+    # print(sols)
+    # print(len(sols))
+
+    def solve2(path, smalls, can_violate):
+        global sols
+        # if path == ['start', 'A', 'b', 'A']:
+        #     import pdb; pdb.set_trace()
+        for opt in opts[path[-1]]:
+            if opt == 'end':
+                sol = path + [opt]
+                sols.append(sol)
+            elif opt == 'start':
+                continue
+            elif opt not in smol:
+                npath = path + [opt]
+                solve2(npath, smalls, can_violate)
+            elif opt not in smalls or can_violate:
+                assert(opt in smol)
+                npath = path + [opt]
+                nsmlls = smalls.union({opt})
+                ncan_violate = opt not in smalls if can_violate else False
+                solve2(npath, nsmlls, ncan_violate)
+
+    solve2(['start'], {'start'}, True)
+    # print(sols)
+    print(len(sols))

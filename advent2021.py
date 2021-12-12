@@ -470,3 +470,44 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
     scores2 = [p2_solve(ls[i]) for i in range(len(scores1)) if scores1[i] == 0]
     # print(f'part ii {np.median([v for _,v in scores2])}')
+
+## Problem 11
+import numpy as np
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    m = np.stack([np.array([int(c) for c in l.rstrip()]) for l in f])
+
+    n = 1000
+    fps = [0] * (n+1)
+    for k in range(1, n+1):
+        m += 1
+        will_flash = set()
+        while True:
+            fij = {(i,j) for i,j in np.argwhere(m > 9)} - will_flash
+            will_flash.update(fij)
+            if len(fij) == 0:
+                break
+            else:
+                for i, j in fij:
+                    if i-1 >= 0:
+                        m[i-1, j] += 1
+                    if i-1 >= 0 and j-1 >= 0:
+                        m[i-1, j-1] += 1
+                    if j-1 >= 0:
+                        m[i, j-1] += 1
+                    if j-1 >= 0 and i+1 < m.shape[0]:
+                        m[i+1, j-1] += 1
+                    if i+1 < m.shape[0]:
+                        m[i+1, j] += 1
+                    if i+1 < m.shape[0] and j+1 < m.shape[1]:
+                        m[i+1, j+1] += 1
+                    if j+1 < m.shape[1]:
+                        m[i, j+1] += 1
+                    if j+1 < m.shape[1] and i-1 >= 0:
+                        m[i-1, j+1] += 1
+
+        m[m > 9] = 0
+        fps[k] = len(will_flash)
+
+    # print(f'part i = {sum(fps[1:101])}')
+    # print(f'part ii = {fps.index(100)}')

@@ -567,3 +567,88 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
     solve2(['start'], {'start'}, True)
     # print(sols)
     print(len(sols))
+
+## Problem 13
+import numpy as np
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    points = []
+    folds = []
+    xdim, ydim = 0, 0
+    for l in f:
+        if l == '\n':
+            break
+        x, y = l.rstrip().split(',')
+        points.append([int(x), int(y)])
+        xdim = max(xdim, points[-1][0])
+        ydim = max(ydim, points[-1][1])
+    for l in f:
+        k, v = l.rstrip().replace('fold along ', '').split('=')
+        folds.append([k, int(v)])
+
+    g = np.zeros((ydim+1, xdim+1))
+    for x, y in points:
+        g[y,x] = 1
+
+    def debug_with_set(n):
+        pset = {(x,y) for x,y in points}
+
+        def _fold(pset, ax, v):
+            if ax == 'y':
+                res = set()
+                for x, y in pset:
+                    if y > v:
+                        res.add((x, 2*v - y))
+                    else:
+                        res.add((x, y))
+            else:
+                res = set()
+                for x, y in pset:
+                    if x > v:
+                        res.add((2*v - x, y ))
+                    else:
+                        res.add((x, y))
+            return res
+
+        for ax, v in folds[0:n]:
+            pset = _fold(pset, ax, v)
+
+        xdim, ydim = 0, 0
+        for x, y in pset:
+            xdim = max(xdim, x)
+            ydim = max(ydim, y)
+
+        g = np.zeros((ydim+1, xdim+1))
+        for x, y in pset:
+            g[y,x] = 1
+
+        return g
+
+    def fold_up(g, v):
+        for i in range(v+1, g.shape[0]):
+            j = 2*v - i
+            g[j, :] = np.maximum(g[i, :], g[j, :])
+
+        return g[0:v, :]
+
+    def fold_left(g, v):
+        for i in range(v+1, g.shape[1]):
+            j = 2*v - i
+            g[:, j] = np.maximum(g[:, i], g[:, j])
+
+        return g[: ,0:v]
+
+    for i, (ax, v) in enumerate(folds[0:12]):
+        g = fold_up(g, v) if ax == 'y' else fold_left(g, v)
+        if i == 0:
+            print(f'part i {g.sum()}')
+
+    def pretty_print(g, x):
+        rows = [''.join([{0: ' ', 1: x}[int(c)] for c in g[i,:]]) for i in range(g.shape[0])]
+        return '\n'.join(rows)
+
+    # g2 = debug_with_set(12)
+    # print(np.array_equal(g, g2))
+
+    print('part ii')
+    print(pretty_print(g, 'O'))

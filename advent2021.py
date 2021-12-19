@@ -652,3 +652,62 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
     print('part ii')
     print(pretty_print(g, 'O'))
+
+## Problem 14
+import math
+from collections import defaultdict
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    for l in f:
+        if l == '\n':
+            break
+        x = l.rstrip()
+
+    count = {} # final answers by letter
+    bylet = {} # a memo table for each letter
+    rules = {}
+    chars = set()
+    for l in f:
+        k, v = l.rstrip().replace(' -> ', ',').split(',')
+        chars.add(v)
+        chars.add(k[0])
+        chars.add(k[1])
+        rules[k] = v
+
+    count = {k:0 for k in chars}
+    bylet = {k : {} for k in chars}
+    for k in x:
+        count[k] += 1
+
+    def expand(k, pair, n):
+        global count
+        global bylet
+        if n == 0:
+            return 0
+        elif (pair, n) in bylet[k]:
+            return bylet[k][(pair,n)]
+        elif pair in rules:
+            kn = rules[pair]
+            vv = (k == kn)
+            pl = pair[0] + kn
+            pr = kn + pair[1]
+            cnt = vv + expand(k, pl, n-1) + expand(k, pr, n-1)
+            bylet[k][(pair, n)] = cnt
+            return cnt
+
+
+    N = 40
+    for i in range(1, len(x)):
+        pair = x[(i-1):(i+1)]
+        for k in chars:
+            cnt = expand(k, pair, N)
+            count[k] += cnt
+
+    mn, mx = math.inf, 0
+    for _, v in count.items():
+        if v < mn:
+            mn = v
+        if v > mx:
+            mx = v
+
+    print(f'N={N} sol is {mx} - {mn} = {mx - mn}')

@@ -711,3 +711,62 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
             mx = v
 
     print(f'N={N} sol is {mx} - {mn} = {mx - mn}')
+
+## Problem 15
+import numpy as np
+import itertools as it
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    rows = []
+    for l in f:
+        rows.append([int(c) for c in l.rstrip()])
+    m = np.array(rows)
+
+    part = 2
+    if part == 2:
+        m2 = np.zeros((m.shape[0]*5, m.shape[1]*5))
+        m2[0:m.shape[0], 0:m.shape[1]] = m
+        for c in range(1,5):
+            src = m2[0:m.shape[0], ((c-1)*m.shape[1]):(c*m.shape[1])]
+            dst = src + 1
+            dst[dst > 9] = 1
+            m2[0:m.shape[0], (c*m.shape[1]):((c+1)*m.shape[1])] = dst
+
+        for r in range(1, 5):
+            for c in range(5):
+                src = m2[((r-1)*m.shape[0]):(r*m.shape[0]), (c*m.shape[1]):((c+1)*m.shape[1])]
+                dst = src + 1
+                dst[dst > 9] = 1
+                m2[(r*m.shape[0]):((r+1)*m.shape[0]), (c*m.shape[1]):((c+1)*m.shape[1])] = dst
+
+        m = m2
+
+    Q = {(i,j) for i, j in it.product(range(m.shape[0]), range(m.shape[1]))}
+    prev = [None] * m.size
+    dist = [np.inf] * m.size
+    dist[0] = 0
+
+    print(f'starting, Q len {len(Q)}')
+    while len(Q) > 0:
+        mi, mj, md = -1, -1, np.inf
+        for i,j in Q:
+            idx = i*m.shape[1] + j
+            d = dist[idx]
+            if d < md:
+                mi, mj, md = i, j, d
+
+        if (mi, mj) == (m.shape[0]-1, m.shape[1]-1):
+            print(f'finished early, Q still len {len(Q)}')
+            break
+
+        Q.remove((mi,mj))
+        for ni, nj in [(mi-1, mj), (mi, mj-1), (mi+1, mj), (mi, mj+1)]:
+            if (ni,nj) in Q:
+                idxu = mi*m.shape[1] + mj
+                idxv = ni*m.shape[1] + nj
+                alt = dist[idxu] + m[ni, nj]
+                if alt < dist[idxv]:
+                    dist[idxv] = alt
+                    prev[idxv] = idxu
+
+    print(f'part {part} min risk {dist[-1]}')

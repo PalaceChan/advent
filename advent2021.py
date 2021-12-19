@@ -770,3 +770,125 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
                     prev[idxv] = idxu
 
     print(f'part {part} min risk {dist[-1]}')
+
+## Problem 16
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    m = f.readline().rstrip()
+    b = ''
+    p = 0
+    for c in m:
+        x = bin(int(c, 16)).replace('0b', '')
+        prefix = '0' * (4 - len(x))
+        x = prefix + x
+        b += x
+
+    class Node:
+        def __init__(self):
+            self.version = None
+            self.ptype = None
+            self.value = None
+            self.ltype = None
+            self.lvalue = None
+            self.children = []
+
+        def decode(self, b, p):
+            pstart = p
+            self.version = int(b[p:(p+3)], 2)
+            p += 3
+            self.ptype = int(b[p:(p+3)], 2)
+            p += 3
+
+            if self.ptype == 4:
+                pend = self.decode_literal(b, p)
+            else:
+                pend = self.decode_operator(b, p)
+
+            return pend - pstart
+
+        def decode_literal(self, b, p):
+            last_group = False
+            literal = ''
+            while not last_group:
+                last_group = (b[p] == '0')
+                p += 1
+                literal += b[p:(p+4)]
+                p += 4
+
+            self.value = int(literal, 2)
+            return p
+
+        def decode_operator(self, b, p):
+            pstart = p
+            self.ltype = b[p]
+            p += 1
+            if self.ltype == '0':
+                self.lvalue = int(b[p:(p+15)], 2)
+                p += 15
+
+                bits_left_to_parse = self.lvalue
+                while bits_left_to_parse > 0:
+                    child = Node()
+                    bits = child.decode(b, p)
+                    self.children.append(child)
+                    p += bits
+                    bits_left_to_parse -= bits
+
+            else:
+                self.lvalue = int(b[p:(p+11)], 2)
+                p += 11
+
+                for _ in range(self.lvalue):
+                    child = Node()
+                    bits = child.decode(b, p)
+                    self.children.append(child)
+                    p += bits
+
+            return p
+
+        def vsum(self):
+            res = self.version
+            for c in self.children:
+                res += c.vsum()
+
+            return res
+
+        def calc(self):
+            if self.ptype == 0:
+                self.value = 0
+                for c in self.children:
+                    self.value += c.value
+            elif self.ptype == 1:
+                self.value = 1
+                for c in self.children:
+                    self.value *= c.value
+            elif self.ptype == 2:
+                self.value = min([c.value for c in self.children])
+            elif self.ptype == 3:
+                self.value = max([c.value for c in self.children])
+            elif self.ptype == 4:
+                assert(self.value is not None)
+            elif self.ptype == 5:
+                assert(len(self.children) == 2)
+                v0 = self.children[0].value
+                v1 = self.children[1].value
+                self.value = int(v0 > v1)
+            elif self.ptype == 6:
+                v0 = self.children[0].value
+                v1 = self.children[1].value
+                self.value = int(v0 < v1)
+            elif self.ptype == 7:
+                v0 = self.children[0].value
+                v1 = self.children[1].value
+                self.value = int(v0 == v1)
+            else:
+                assert(False, f'ptype of {ptype} invalid')
+
+        def visit(self):
+            for c in self.children:
+                c.visit()
+            self.calc()
+
+
+    root = Node()
+    bits = root.decode(b, p)
+    root.visit()

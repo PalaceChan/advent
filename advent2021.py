@@ -1233,3 +1233,67 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
     print(f'part i ans = {len(solve_p1())}')
     print(f'part ii ans = {solve_p2}')
+
+## Problem 20
+import os
+import numpy as np
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    pmap = {'#':1, '.':0}
+    algo = [pmap[c] for c in f.readline().rstrip()]
+
+    f.readline()
+    rows = []
+    for l in f:
+        row = [pmap[c] for c in l.rstrip()]
+        rows.append(np.array(row))
+
+    s = len(rows)
+    m = np.zeros((s+4, s+4), dtype=int)
+    m[2:(s+2),2:(s+2)] = np.vstack(rows)
+
+    def pprint(m):
+        ipmap = {1:'#', 0:'.'}
+        print('\n'.join([''.join([ipmap[c] for c in r]) for r in m]))
+
+    def enhance(m):
+        m2 = m.copy()
+
+        # border
+        bval = algo[0] if m[0,0] == 0 else algo[-1]
+        m2[0, :] = bval
+        m2[-1, :] = bval
+        m2[:, 0] = bval
+        m2[:, -1] = bval
+
+        # inside
+        for i, j in it.product(range(1, m.shape[0]-1), repeat=2):
+            sm = m[(i-1):(i+2), (j-1):(j+2)]
+            bs = ''.join([str(x) for x in sm.reshape(9)])
+            idx = int(bs, 2)
+            m2[i, j] = algo[idx]
+
+        s = m2.shape[0]
+        m3 = np.ones((s+4, s+4), dtype=int) * bval
+        m3[2:(s+2),2:(s+2)] = m2
+
+        return m3
+
+    def solve_p1():
+        m3 = enhance(enhance(m))
+        return m3.sum()
+
+    def solve_p2():
+        def compose(f, n):
+            def fn(x):
+                for i in range(n):
+                    x = f(x)
+                return x
+            return fn
+
+        e50 = compose(enhance, 50)
+        m50 = e50(m)
+        return m50.sum()
+
+    print(f'part i ans = {solve_p1()}}')
+    print(f'part ii ans = {solve_p2()}}')

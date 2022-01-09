@@ -1297,3 +1297,70 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
     print(f'part i ans = {solve_p1()}}')
     print(f'part ii ans = {solve_p2()}}')
+
+## Problem 21
+import os
+import re
+import numpy as np
+import itertools as it
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    p1 = int(re.match('Player \d starting position: (\d+)\n', f.readline()).group(1))
+    p2 = int(re.match('Player \d starting position: (\d+)\n', f.readline()).group(1))
+
+    def solve_p1():
+        scr = [0, 0]
+        pos = [p1, p2]
+        who = 0
+        die = it.cycle(range(1,101))
+        num = 0
+        while True:
+            roll = next(die) + next(die) + next(die)
+            num += 3
+            pos[who] = (pos[who] + roll) % 10
+            if pos[who] == 0:
+                pos[who] = 10
+            scr[who] += pos[who]
+            if scr[who] >= 1000:
+                break
+            who = 1 if who == 0 else 0
+
+        oth = 1 if who == 0 else 0
+        return num * scr[oth]
+
+    def solve_p2():
+        #Counter([sum(list(x)) for x in it.product([1,2,3], repeat=3)])
+        to_steps = np.array([3, 4, 5, 6, 7, 8, 9])
+        to_univs = np.array([1, 3, 6, 7, 6, 3, 1])
+
+        def step(ply, who, pos, opos, scr, oscr, idx):
+            end = False
+            ucnt = to_univs[idx]
+            roll = to_steps[idx]
+            pos = (pos + roll) % 10
+            if pos == 0:
+                pos = 10
+            scr += pos
+            if scr >= 21:
+                end = True
+                if who != ply:
+                    ucnt = 0
+            who = 1 if who == 0 else 0
+            return end, who, opos, pos, oscr, scr, ucnt
+
+        def solve(ply, who, pos, opos, scr, oscr, ucnt, idx):
+            end, nwho, npos, nopos, nscr, noscr, nucnt = step(ply, who, pos, opos, scr, oscr, idx)
+            if end:
+                return ucnt * nucnt
+            else:
+                univs = 0
+                for i in range(7):
+                    univs += solve(ply, nwho, npos, nopos, nscr, noscr, ucnt * nucnt, i)
+                return univs
+
+            p1_univs = sum([solve(0, 0, p1, p2, 0, 0, 1, i) for i in range(7)])
+            p2_univs = sum([solve(1, 0, p1, p2, 0, 0, 1, i) for i in range(7)])
+            return max(p1_univs, p2_univs)
+
+        print(f'part i ans = {solve_p1()}')
+        print(f'part ii ans = {solve_p2()}')

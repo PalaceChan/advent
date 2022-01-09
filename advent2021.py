@@ -1364,3 +1364,165 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
         print(f'part i ans = {solve_p1()}')
         print(f'part ii ans = {solve_p2()}')
+
+## Problem 22
+import os
+import re
+from typing import Tuple
+from dataclasses import dataclass
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    @dataclass
+    class Step():
+        bit: int
+        xb: Tuple
+        yb: Tuple
+        zb: Tuple
+
+    steps = []
+    for l in f:
+        m = re.match(r'(\w+) x=(-?\d+)..(-?\d+),y=(-?\d+)..(-?\d+),z=(-?\d+)..(-?\d+)', l)
+        bit = 1 if m.group(1) == 'on' else 0
+        xb = (int(m.group(2)), int(m.group(3)))
+        yb = (int(m.group(4)), int(m.group(5)))
+        zb = (int(m.group(6)), int(m.group(7)))
+        s = Step(bit, xb, yb, zb)
+        steps.append(s)
+
+    def solve_p1():
+        m = np.zeros((102, 102, 102), dtype=int)
+        for s in steps:
+            xb = (max(s.xb[0] + 50, 0), min(s.xb[1] + 51, 101))
+            yb = (max(s.yb[0] + 50, 0), min(s.yb[1] + 51, 101))
+            zb = (max(s.zb[0] + 50, 0), min(s.zb[1] + 51, 101))
+            xo = xb[0] > 100 or xb[1] < 1
+            yo = yb[0] > 100 or yb[1] < 1
+            zo = zb[0] > 100 or zb[1] < 1
+            if xo or yo or zo:
+                continue
+            m[xb[0]:xb[1], yb[0]:yb[1], zb[0]:zb[1]] = s.bit
+
+        return m.sum()
+
+    @dataclass
+    class Box:
+        x0: int
+        x1: int
+        y0: int
+        y1: int
+        z0: int
+        z1: int
+
+        def points(self):
+            return (self.x1 - self.x0 + 1) * (self.y1 - self.y0 + 1) * (self.z1 - self.z0 + 1)
+
+        def __hash__(self):
+            return hash((self.x0, self.x1, self.y0, self.y1, self.z0, self.z1))
+
+    def solve_p2():
+        bs = set()
+
+        def subsumes(b, o):
+            sx = (b.x0 <= o.x0 and o.x1 <= b.x1)
+            sy = (b.y0 <= o.y0 and o.y1 <= b.y1)
+            sz = (b.z0 <= o.z0 and o.z1 <= b.z1)
+
+            return (sx and sy and sz)
+
+        def overalps(b, o):
+            dx = (b.x1 < o.x0 or o.x1 < b.x0)
+            dy = (b.y1 < o.y0 or o.y1 < b.y0)
+            dz = (b.z1 < o.z0 or o.z1 < b.z0)
+
+            # not disjoint
+            return not (dx or dy or dz)
+
+        def remove_all_subsumed(b):
+            dead = []
+            for o in bs:
+                if subsumes(b, o):
+                    dead.append(o)
+            for o in dead:
+                bs.remove(o)
+
+        def calc_diff(b, o):
+            # for each face of o that falls between faces of b, yield a box
+            diffs = []
+            if b.x0 < o.x0:
+                #+x
+                diffs.append(Box(b.x0, o.x0 - 1, b.y0, b.y1, b.z0, b.z1))
+            if b.y0 < o.y0:
+                #+y
+                diffs.append(Box(b.x0, b.x1, b.y0, o.y0 - 1, b.z0, b.z1))
+            if b.z0 < o.z0:
+                #+z
+                diffs.append(Box(b.x0, b.x1, b.y0, b.y1, b.z0, o.z0 - 1))
+            if o.x1 < b.x1:
+                #-x
+                diffs.append(Box(o.x1 + 1, b.x1, b.y0, b.y1, b.z0, b.z1))
+            if o.y1 < b.y1:
+                #-y
+                diffs.append(Box(b.x0, b.x1, o.y1 + 1, b.y1, b.z0, b.z1))
+            if o.z1 < b.z1:
+                #-z
+                diffs.append(Box(b.x0, b.x1, b.y0, b.y1, o.z1 + 1, b.z1))
+
+            return diffs
+
+        def add_on_box(b):
+            # if subsumed by another box ignore
+            for o in bs:
+                if subsumes(o, b):
+                    return
+
+            # remove any boxes b subsumes
+            remove_all_subsumed()
+
+            # if overlaps with a box, calc diff boxes and add those instead
+            diffs = []
+            for o in bs:
+                if overlaps(b, o):
+                    diffs = calc_diff(b, o)
+                    break
+
+            if not diffs:
+                bs.add(b)
+            else:
+                for db in diffs:
+                    add_on_box(db)
+
+        def add_off_box(b):
+            # rmeove any boxes b subsumes
+            remove_all_subsumed(b)
+
+            # while overlap with a box, calc diff boxes, remove box and replace with diff boxes
+            while True:
+                olapb = None
+                for o in bs:
+                    if overlaps(b, o):
+                        olapb = o
+                        diffs = calc_diff(o, b)
+                        break
+
+                if olapb is not None:
+                    bs.remove(olapb)
+                    assert(len(diffs) > 0)
+                    for db in diffs:
+                        add_on_box(db)
+                else:
+                    break
+
+        for i, s in enumerate(steps):
+            b = Box(s.xb[0], s.xb[1], s.yb[0], s.yb[1], s.zb[0], s.zb[1])
+            if s.bit == 1:
+                add_on_box(b)
+            else:
+                add_off_box(b)
+
+        n = 0
+        for b in bs:
+            n += b.points()
+        return n
+
+    print(f'part i ans = {solve_p1()}')
+    print(f'part ii ans = {solve_p2()}')

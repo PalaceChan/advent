@@ -946,3 +946,170 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
     p2 = solve_p2(x, y, x0, x1, y0, y1)
     print(f'part ii {p2}')
+
+## Problem 18
+import os
+import functools
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    lines = f.readlines()
+
+    class Node:
+        def __init__(self, depth):
+            self.depth = depth
+            self.value = None
+            self.left = None
+            self.right = None
+            self.parent = None
+
+        def __add__(self, oth):
+            root = Node(0)
+            root.left = self
+            root.right = oth
+            root.left.parent = root
+            root.right.parent = root
+
+            root.left.bury()
+            root.right.bury()
+            return root
+
+        def bury(self):
+            self.depth += 1
+            if self.left is not None:
+                self.left.bury()
+            if self.right is not None:
+                self.right.bury()
+
+        def to_str(self):
+            if self.value is not None:
+                return str(self.value)
+            else:
+                return f'[{self.left.to_str(), {self.right.to_str()}]'
+
+        def __repr__(self):
+            return self.to_str()
+
+        def shed(self, v, where):
+            prv = self
+            cur = self.parent
+            while cur is not None:
+                n = cur.left if where == 'left' else cur.right
+                if n is not prv:
+                    if where == 'left':
+                        while n.right is not None and n.value is None:
+                            n = n.right
+                    else:
+                        while n.left is not None and n.value is None:
+                            n = n.left
+
+                    if n.value is not None:
+                        n.value += v
+                        return True
+
+                prv = cur
+                cur = cur.parent
+
+        def explode(self):
+            self.shed(self.left.value, 'left')
+            self.shed(self.right.value, 'right')
+
+            self.value = 0
+            self.left = None
+            self.right = None
+
+        def split(self):
+            d = self.depth + 1
+            self.left = Node(d)
+            self.right = Node(d)
+            self.left.parent = self
+            self.right.parent = self
+            self.left.value = int(self.value / 2)
+            self.right.value = int(self.value / 2 + 0.5)
+            self.value = None
+
+        def try_explode(self):
+            l = self.left
+            r = self.right
+
+            if l is not None and l.try_explode():
+                return True
+
+            if l is not None and l.value is not None and r is not None and r.value is not None and self.depth == 4:
+                self.explode()
+                return True
+
+            if r is not None and r.try_explode():
+                return True
+
+            return False
+
+        def try_split():
+            l = self.left
+            r = self.right
+
+            if l is not None and l.try_split():
+                return True
+
+            if self.value is not None and self.value >= 10:
+                self.split()
+                return True
+
+            if r is not None and r.try_split():
+                return True
+
+            return False
+
+        def reduce(self):
+            while self.try_explode() or self.try_split():
+                pass
+            return self
+
+        def magnitude(self):
+            if self.value is not None:
+                return self.value
+            else:
+                return 3 * self.left.magnitude() + 2 * self.right.magnitude()
+
+    def to_tree(line):
+        d = 0
+        root = Node(d)
+        curr = root
+        for c in line:
+            if c == '[':
+                d += 1
+                curr.left = Node(d)
+                curr.right = Node(d)
+                curr.left.parent = curr
+                curr.right.parent = curr
+                curr = curr.left
+            elif c == ']':
+                d -= 1
+                curr = curr.parent
+            elif c == ',':
+                curr = curr.parent.right
+            else:
+                curr.value = int(c)
+
+        return root
+
+    def solve_p2(lines):
+        smax = None
+        mmax = -1
+        for i in range(len(lines)):
+            for j in range(len(lines)):
+                a = to_tree(lines[i])
+                b = to_tree(lines[i])
+                c = (a + b).reduce()
+                m = c.magnitude()
+                if m > mmax:
+                    smax = c
+                    mmax = m
+
+        return mmax, smax
+
+    trees = [to_tree(l.rstrip()) for l in lines]
+    acc = functools.reduce(lambda x,y: (x+y).reduce(), trees)
+    print(f'part i sum is {acc} magnitude of {acc.magnitude()}')
+
+    mmax, smax = solve_p2([l.rstrip() for l in lines])
+    print(f'part ii mmax is {mmax}')

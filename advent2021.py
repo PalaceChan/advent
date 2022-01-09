@@ -1113,3 +1113,123 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
     mmax, smax = solve_p2([l.rstrip() for l in lines])
     print(f'part ii mmax is {mmax}')
+
+## Problem 19
+import os
+import numpy as np
+import itertools as it
+from dataclasses import dataclass
+from typing import Any
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    @dataclass
+    class Scanner:
+        idx: int
+        pos: Any
+        orient: Any
+        points: Any
+
+    linno = 0
+    lines = [l.rstrip() for l in f]
+    scanners = []
+    while linno < len(lines):
+        if lines[linno].startswith('---'):
+            s = Scanner(len(scanners), None, None, None)
+            p = []
+            if s.idx = 0:
+                s.pos = np.array([0, 0, 0])
+                s.orient = np.eye(3, dtype=int)
+            linno += 1
+            while linno < len(lines):
+                if lines[linno] == '':
+                    break
+                x, y, z = lines[linno].split(',')
+                xyz = np.array([int(x), int(y), int(z)])
+                p.append(xyz)
+                linno += 1
+            s.points = np.vstack(p)
+            scanners.append(s)
+
+        linno += 1
+
+    def symmetries24():
+        res = []
+        for o in it.product([1, -1], repeat=3):
+            oa = np.array(o)
+            for p in it.permutations([0,1,2]):
+                pa = np.array(p)
+                m = oa * np.eye(3, dtype=int)[:, pa]
+                if np.linalg.det(m) > 0:
+                    res.append(m)
+
+        return res
+
+    def intersect(x, y):
+        assert(x.orient is not None and x.pos is not None)
+        assert(y.orient is not None and y.pos is not None)
+        xpoints = x.pos + x.points @ x.orient
+        ypoints = y.pos + y.points @ y.orient
+        rx = set([tuple(r) for r in xpoints])
+        ry = set([tuple(r) for r in ypoints])
+        rb = ry & rx
+        return rb
+
+    def resolve(x, y, s24):
+        assert(x.orient is not None and x.pos is not None)
+        xpoints = x.pos + x.points @ x.orient
+        rx = set([tuple(r) for r in xpoints])
+        for sym in s24:
+            for px in xpoints:
+                # if px a common point and sym the y orientation..
+                ysym = y.points @ sym
+                ypos = px - ysym
+                for yp in ypos:
+                    py = yp + ysym
+                    ry = set([tuple(r) for r in py])
+                    rb = ry & rx
+                    assert(len(rb) <= 12)
+                    if len(rb) == 12:
+                        return yp, sym, rb
+        return None
+
+    def solve_p1():
+        s24 = symmetries24()
+        done = [0]
+        pend = set(range(1, len(scanners)))
+
+        # resolve scanners
+        while len(pend) > 0:
+            for x, y in it.product(done[::-1], pend):
+                res = resolve(scanners[x], scanners[y], s24)
+                if res is not None:
+                    print(f'solved {y} using {x}')
+                    ypos, yorient, _ = res
+                    scanners[y].pos = ypos
+                    scanners[y].orient = yorient
+                    pend.remove(y)
+                    done.append(y)
+                    break
+            else:
+                assert(False, f'could not solve {pend} from {done}')
+
+        # intersect them
+        all_beacons = set()
+        for x, y in it.product(done, repeat=2):
+            if x <= y:
+                rb = intersect(scanners[x], scanners[y])
+                all_beacons.update(rb)
+
+        return all_beacons
+
+    def solve_p2():
+        maxd = -1
+        for x, y in it.product(range(len(scanners)), repeat=2):
+            if x <= y:
+                md = np.sum(np.abs(scanners[x].pos - scanners[y].pos))
+                if md > maxd:
+                    maxd = md
+
+        return maxd
+
+    print(f'part i ans = {len(solve_p1())}')
+    print(f'part ii ans = {solve_p2}')

@@ -1526,3 +1526,311 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
     print(f'part i ans = {solve_p1()}')
     print(f'part ii ans = {solve_p2()}')
+
+## Problem 23
+import os
+import copy
+import numpy as np
+np.set_printoptions(linewidth=100000)
+from dataclasses import dataclass
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    _, _   = f.readline(), f.readline()
+    r0, r1 = f.readline(), f.readline()
+
+    @dataclass
+    class Pod:
+        code: str
+        cost: int
+        x: int
+        y: int
+        goal_y: int
+
+    cost = {'A': 1, 'B': 10, 'C': 100, 'D': 1000}
+    goal = {'A': 3, 'B': 5, 'C': 7, 'D': 9}
+    bady = [3, 5, 7, 9]
+
+    opt_cost = 2**32
+
+    def solve_p1():
+        o = np.zeros((3, 13), dtype=str)
+        o[:] = 'X'
+        o[0, 1:12] = ' '
+
+        pods = []
+        for i, r in enumerate([r0, r1]):
+            for j, c in enumerate(r):
+                if c in cost.keys():
+                    o[i+1, j] = c
+                    pods.append(Pod(c, cost[c], i+1, j, goal[c]))
+
+        def calc_to_hall(p, o):
+            moves = []
+            for d in [-1, 1]:
+                c = p.x * p.cost
+                x, y = 0, p.y
+
+                while True:
+                    y += d
+                    c += p.cost
+                    if not o[x,y] == ' ':
+                        break
+                    elif y not in bady:
+                        dw = +1 if (p.y == p.goal_y) else 0
+                        moves.append((c, x, y, dw))
+
+            return moves
+
+        def try_move_to_dst_room(p, o):
+            c = p.x * p.cost
+            d = np.sign(p.goal_y - p.y)
+            x, y = 0, p.y
+
+            # try to get to outside your dst room
+            while y != p.goal_y:
+                y += d
+                c += p.cost
+                if o[x,y] != ' ':
+                    return []
+
+            # go in as deep as can go
+            while True:
+                if (x+1) <= 2 and o[x+1,y] == ' ':
+                    x += 1
+                    c += p.cost
+                else:
+                    break
+
+            if x == 0 or (x == 1 and o[2, y] != p.code):
+                return []
+            else:
+                dw = -1
+                return [(c, x, y, dw)]
+
+        def calc_moves(idx, p, o):
+            # if in own room:
+            #    if at x=2, do nothing
+            #    else assert x=1 and if behind u not ur bro, to hall
+            # if in oth room:
+            #    if at x=2 and blocked do nothing
+            #    else assert x=1 try to go to own room (implies x=2)
+            #         if fail to reach own room go to hall
+            # if in hall:
+            #    try to go to own room (implies x=2)
+            #    if fail do nothing
+
+            if p.y == p.goal_y:
+                assert(p.x == 1 or p.x == 2)
+                if p.x == 2:
+                    return []
+                elif o[2, p.y] == p.code:
+                    return []
+                else:
+                    return calc_to_hall(p, o)
+
+            if p.y != p.goal_y and p.x > 0:
+                if p.x == 2 and o[1, p.y] != ' ':
+                    return []
+                else:
+                    # at 2 unblocked or at 1 so also unblocked
+                    move_to_dst_room = try_move_to_dst_room(p, o)
+                    if move_to_dst_room:
+                        return move_to_dst_room
+                    else:
+                        return calc_to_hall(p, o)
+
+            if p.x == 0:
+                move_to_dst_room = try_move_to_dst_room(p, o)
+                if move_to_dst_room:
+                    return move_to_dst_room
+                else:
+                    return []
+
+        def solve(idx, e, w, pods, o, path):
+            global opt_cost
+
+            # if cost is higher than best cost so far, abort
+            if e >= opt_cost:
+                return
+
+            # if this move wins (w=0) update opt_cost and return
+            if w == 0:
+                opt_cost = e
+                return
+
+            # for every pod calculate valid moves
+            # for every move play game with that move
+            for i, p in enumerate(pods):
+                moves = calc_moves(idx, p, o)
+                for c, x, y, dw in moves:
+                    nleg = (p.code, p.x, p.y, x, y, w+dw)
+                    npath = [*path, nleg]
+                    npods = copy.deepcopy(pods)
+                    no = o.copy()
+                    no[p.x, p.y] = ' '
+                    no[x, y] = p.code
+                    npods[i].x = x
+                    npods[i].y = y
+                    solve(idx + 1, e + c, w + dw, npods, no, npath)
+
+            w = np.sum([p.y != p.goal_y for p in pods])
+            solve(0, 0, w, pods, o, [])
+            return opt_cost
+
+    def solve_p2():
+        r0_1 = '  #D#C#B#A#'
+        r0_1 = '  #D#B#A#C#'
+
+        o = np.zeros((5, 13), dtype=str)
+        o[:] = 'X'
+        o[0, 1:12] = ' '
+
+        pods = []
+        for i, r in enumerate([r0, r0_1, r0_2, r1]):
+            for j, c in enumerate(r):
+                if c in cost.keys():
+                    o[i+1, j] = c
+                    pods.append(Pod(c, cost[c], i+1, j, goal[c]))
+
+        def calc_to_hall(p, o):
+            moves = []
+            for d in [-1, 1]:
+                c = p.x * p.cost
+                x, y = 0, p.y
+
+                while True:
+                    y += d
+                    c += p.cost
+                    if not o[x,y] == ' ':
+                        break
+                    elif y not in bady:
+                        dw = +1 if (p.y == p.goal_y) else 0
+                        moves.append((c, x, y, dw))
+
+            return moves
+
+        def try_move_to_dst_room(p, o):
+            c = p.x * p.cost
+            d = np.sign(p.goal_y - p.y)
+            x, y = 0, p.y
+
+            # try to get to outside your dst room
+            while y != p.goal_y:
+                y += d
+                c += p.cost
+                if o[x,y] != ' ':
+                    return []
+
+            # go in as deep as can go
+            while True:
+                if (x+1) <= 4 and o[x+1,y] == ' ':
+                    x += 1
+                    c += p.cost
+                else:
+                    break
+
+            # could not enter room
+            if x == 0:
+                return []
+
+            # return if detect non-bros
+            non_bros = False
+            for i in range(x+1, 5):
+                if o[i, y] != p.code:
+                    return []
+
+            # move ok
+            dw = -1
+            return [(c, x, y, dw)]
+
+        def calc_moves(idx, p, o):
+            # if in own room:
+            #    if someone in front do nothing
+            #    else if anyone behind u not ur bro, to hall
+            # if in oth room:
+            #    if someone in front do nothing
+            #    else try to go to own room
+            #         if fail to reach own room go to hall
+            # if in hall:
+            #    try to go to own room
+            #    if fail do nothing
+
+            if p.y == p.goal_y:
+                if o[p.x - 1, p.y] != ' ':
+                    return []
+                else:
+                    for i in range(p.x+1, 5):
+                        if o[i, p.y] != p.code:
+                            return calc_to_hall(p, o)
+                    return []
+
+            if p.y != p.goal_y and p.x > 0:
+                if o[p.x - 1, p.y] != ' ':
+                    return []
+                else:
+                    move_to_dst_room = try_move_to_dst_room(p, o)
+                    if move_to_dst_room:
+                        return move_to_dst_room
+                    else:
+                        return calc_to_hall(p, o)
+
+            if p.x == 0:
+                move_to_dst_room = try_move_to_dst_room(p, o)
+                if move_to_dst_room:
+                    return move_to_dst_room
+                else:
+                    return []
+
+        def dump():
+            path = []
+            print(f'{o}')
+            for leg in path:
+                print(f'{leg}')
+                c, x, y, x2, y2, _ = leg
+                for p in pods:
+                    if p.code == c and p.x == x and p.y == y:
+                        o[p.x, p.y] = ' '
+                        o[x2, y2] = p.code
+                        p.x = x2
+                        p.y = y2
+                        print(f'{o}')
+                        print('\n')
+                        break
+                else:
+                    raise AssertionError(f'{pods}')
+
+        def solve(idx, e, w, pods, o, path):
+            global opt_cost
+
+            # if too many moves deep, log
+            if idx == 200:
+                raise AssertionError(f'idx={idx} is extreme, path is {path}')
+
+            # if cost is no better than best cost so far, abort
+            if e >= opt_cost:
+                return
+
+            # if this move wins (w=0) update opt_cost and return
+            if w == 0:
+                opt_cost = e
+                return
+
+            for i, p in enumerate(pods):
+                moves = calc_moves(idx, p, o)
+                for c, x, y, dw in moves:
+                    nleg = (p.code, p.x, p.y, x, y, w+dw)
+                    npath = [*path, nleg]
+                    npods = copy.deepcopy(pods)
+                    no = o.copy()
+                    no[p.x, p.y] = ' '
+                    no[x, y] = p.code
+                    npods[i].x = x
+                    npods[i].y = y
+                    solve(idx + 1, e + c, w + dw, npods, no, npath)
+
+            w = np.sum([p.y != p.goal_y for p in pods])
+            solve(0, 0, w, pods, o, [])
+            return opt_cost
+
+    print(f'part i ans = {solve_p1()}')
+    print(f'part ii ans = {solve_p2()}')

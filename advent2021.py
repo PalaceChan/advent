@@ -892,3 +892,57 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
     root = Node()
     bits = root.decode(b, p)
     root.visit()
+
+## Problem 17
+import os
+import re
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    l = f.readline().rstrip()
+    m = re.match(r'target area: x=(-?\d+)..(-?\d+), y=(-?\d+)..(-?\d+)', l)
+    x0, x1, y0, y1 = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
+
+    def solve_x(x0):
+        for n in range(2**32):
+            if n * (n+1) / 2 >= x0:
+                break
+        return n
+
+    def solve_y(y0, n):
+        return -1*y0 - 1
+
+    def trip(i):
+        return i * (i+1) / 2
+
+    x = solve_x(x0)
+    y = solve_y(y0, x)
+
+    print(f'part i ({x},{y}) with trip of {trip(y)}')
+
+    def solve_p2(x, y, x0, x1, y0, y1):
+        one_shots = (x1-x0+1)*(y1-y0+1)
+
+        def _works(a, b):
+            px, py = 0, 0
+            while True:
+                px += a
+                py += b
+                a = max(0, a - 1)
+                b -= 1
+                hit = (px >= x0 and px <= x1 and py >= y0 and py <= y1)
+                if hit:
+                    return True
+                out = (px > x1 or py < y0)
+                if out:
+                    return False
+
+            others = 0
+            for a in range(x, x0):
+                for b in range(y0, y+1)
+                if _works(a, b):
+                    others += 1
+
+            return one_shots + others
+
+    p2 = solve_p2(x, y, x0, x1, y0, y1)
+    print(f'part ii {p2}')

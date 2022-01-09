@@ -1834,3 +1834,419 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
     print(f'part i ans = {solve_p1()}')
     print(f'part ii ans = {solve_p2()}')
+
+## Problem 24
+import os
+from dataclasses import dataclass
+from functools import partial
+from typing import List
+import itertools as it
+import time
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    lines = f.readlines()
+
+    @dataclass
+    class Alu():
+        x: List
+        y: List
+        z: List
+        w: List
+        sp: List
+        dig: List
+
+        def reset(self, snum):
+            self.x[0] = 0
+            self.y[0] = 0
+            self.z[0] = 0
+            self.w[0] = 0
+            self.sp[0] = 0
+            for i, c in enumerate(snum):
+                self.dig[i] = int(c)
+
+    def inp(op1, dig, sp):
+        op1[0] = dig[sp[0]]
+        sp[0] += 1
+
+    def add(op1, op2):
+        op1[0] = op1[0] + op2[0]
+
+    def mul(op1, op2):
+        op1[0] = op1[0] * op2[0]
+
+    def div(op1, op2):
+        op1[0] = op1[0] // op2[0]
+
+    def mod(op1, op2):
+        op1[0] = op1[0] % op2[0]
+
+    def eql(op1, op2):
+        op1[0] = int(op1[0] == op2[0])
+
+    def solve_p1p2():
+        alu = Alu([0], [0], [0], [0], [0], [0] * 14)
+
+        # load monad
+        mon = []
+        for l in lines:
+            l = l.rstrip()
+            bf = None
+            if l.startswith('inp'):
+                _, op1 = l.split(' ')
+                bf = partial(inp, getattr(alu, op1), alu.dig, alu.sp)
+            elif l.startswith('add'):
+                _, op1, op2 = l.split(' ')
+                if hasattr(alu, op2):
+                    bf = partial(add, getattr(alu, op1), getattr(alu, op2))
+                else:
+                    bf = partial(add, getattr(alu, op1), [int(op2)])
+            elif l.startswith('mul'):
+                _, op1, op2 = l.split(' ')
+                if hasattr(alu, op2):
+                    bf = partial(mul, getattr(alu, op1), getattr(alu, op2))
+                else:
+                    bf = partial(mul, getattr(alu, op1), [int(op2)])
+            elif l.startswith('div'):
+                _, op1, op2 = l.split(' ')
+                if hasattr(alu, op2):
+                    bf = partial(div, getattr(alu, op1), getattr(alu, op2))
+                else:
+                    bf = partial(div, getattr(alu, op1), [int(op2)])
+            elif l.startswith('mod'):
+                _, op1, op2 = l.split(' ')
+                if hasattr(alu, op2):
+                    bf = partial(mod, getattr(alu, op1), getattr(alu, op2))
+                else:
+                    bf = partial(mod, getattr(alu, op1), [int(op2)])
+            elif l.startswith('eql'):
+                _, op1, op2 = l.split(' ')
+                if hasattr(alu, op2):
+                    bf = partial(eql, getattr(alu, op1), getattr(alu, op2))
+                else:
+                    bf = partial(eql, getattr(alu, op1), [int(op2)])
+            mon.append(bf)
+
+        def test1():
+            for num in '123456789':
+                print(num)
+                alu.reset(num)
+                for bf in mon:
+                    bf()
+                print(alu)
+        # test1()
+
+        def test2():
+            for num in it.product('123456789', repeat=2):
+                w1, w2 = int(num[0]), int(num[1])
+                x = 1
+                y = w2 + 10
+                z = (w1 + 13) * 26 + (w2 + 10)
+
+                alu.reset(mon)
+                for bf in mon:
+                    bf()
+                if alu.x[0] != x or alu.y[0] != y or alu.z[0] != z:
+                    print(f'{"".join(num) -> {alu}}')
+                    print(f'expected x={x}, y={y}, z={z}')
+                    break
+            else:
+                print('test 2 passes')
+        # test2()
+
+        def test3():
+            for num in it.product('123456789', repeat=3):
+                w1, w2, w3 = int(num[0]), int(num[1]), int(num[2])
+                x = 1
+                y = w3 + 3
+                z = ((w1 + 13) * 26 + (w2 + 10)) * 26 + (w3 + 3)
+
+                alu.reset(mon)
+                for bf in mon:
+                    bf()
+                if alu.x[0] != x or alu.y[0] != y or alu.z[0] != z:
+                    print(f'{"".join(num) -> {alu}}')
+                    print(f'expected x={x}, y={y}, z={z}')
+                    break
+            else:
+                print('test 3 passes')
+        # test3()
+
+        def test4():
+            for num in it.product('123456789', repeat=3):
+                w1, w2, w3 = int(num[0]), int(num[1]), int(num[2])
+                # verify conds under which rhs of x w4 != is 1 or 0
+                x = (((w1 + 13) * 26 + (w2 + 10)) * 26 + (w3 + 3)) % 26 - 11
+                if w3 == 9 and x != 1:
+                    raise AssertionError(f'{"".join(num) -> {x}')
+                elif x == 1 and w3 != 9:
+                    raise AssertionError(f'{"".join(num) -> {x}')
+
+                # verify simplified z
+                zorig = (((w1 + 13) * 26 + (w2 + 10)) * 26  + (w3 + 3)) // 26
+                z = (w1 + 13) * 26 + (w2 + 10)
+                if z != zorig:
+                    raise AssertionError(f'{"".join(num) -> {z} vs {zorig}')
+
+            # verify final form
+            for num in it.product('123456789', repeat=4):
+                w1, w2, w3, w4 = int(num[0]), int(num[1]), int(num[2]), int(num[3])
+                if w3 == 9 and w4 == 1:
+                    x = 0
+                    y = 0
+                    z = (w1 + 13) * 26 + (w2 + 10)
+                else:
+                    x = 1
+                    y = w4 + 1
+                    z = ((w1 + 13) * 26 + (w2 + 10)) * 26 + (w4 + 1)
+                alu.reset(mon)
+                for bf in mon:
+                    bf()
+                if alu.x[0] != x or alu.y[0] != y or alu.z[0] != z:
+                    print(f'{"".join(num) -> {alu}}')
+                    print(f'expected x={x}, y={y}, z={z}')
+                    break
+            else:
+                print('test 4 passes')
+        # test4()
+
+        def test5():
+            for num in it.product('123456789', repeat=2):
+                w1, w2 = int(num[0]), int(num[1])
+                vorig = ((w1 + 13) * 26 + (w2 + 10)) % 26 + 11
+                v = w2 + 21
+                if v != vorig:
+                    raise AssertionError(f'{"".join(num) -> {v} vs {vorig}')
+                elif x == 1 and w3 != 9:
+                    raise AssertionError(f'{"".join(num) -> {x}')
+
+            # verify final form
+            for num in it.product('123456789', repeat=5):
+                w1, w2, w3, w4, w5 = int(num[0]), int(num[1]), int(num[2]), int(num[3]), int(num[4])
+                if w3 == 9 and w4 == 1:
+                    x = 1
+                    y = w5 + 9
+                    z = ((w1 + 13) * 26 + (w2 + 10)) * 26 + (w5 + 9)
+                else:
+                    x = 1
+                    y = w5 + 9
+                    z = (((w1 + 13) * 26 + (w2 + 10)) * 26 + (w4 + 1)) * 26 + (w5 + 9)
+                alu.reset(mon)
+                for bf in mon:
+                    bf()
+                if alu.x[0] != x or alu.y[0] != y or alu.z[0] != z:
+                    print(f'{"".join(num) -> {alu}}')
+                    print(f'expected x={x}, y={y}, z={z}')
+                    break
+            else:
+                print('test 5 passes')
+        # test5()
+
+        def test6():
+            for num in it.product('123456789', repeat=3):
+                w1, w2, w5 = int(num[0]), int(num[1]), int(num[2])
+                vorig = (((w1 + 13) * 26 + (w2 + 10)) * 26 + (w5 + 9)) % 26 - 4
+                v = w5 + 5
+                if v != vorig:
+                    raise AssertionError(f'{"".join(num) -> {v} vs {vorig}')
+
+            for num in it.product('123456789', repeat=4):
+                w1, w2, w4, w5 = int(num[0]), int(num[1]), int(num[2]), int(num[3])
+                vorig = ((((w1 + 13) * 26 + (w2 + 10)) * 26 + (w4 + 1)) * 26 + (w5 + 9)) % 26 - 4
+                v = w5 + 5
+                if v != vorig:
+                    raise AssertionError(f'{"".join(num) -> {v} vs {vorig}')
+
+            # verify final form
+            for num in it.product('123456789', repeat=6):
+                w1, w2, w3, w4, w5, w6 = int(num[0]), int(num[1]), int(num[2]), int(num[3]), int(num[4]), int(num[5])
+                if w3 == 9 and w4 == 1:
+                    if w6 == w5 + 5:
+                        x = 0
+                        y = 0
+                        z = (((w1 + 13) * 26 + (w2 + 10)) * 26 + (w5 + 9)) // 26
+                    else:
+                        x = 1
+                        y = (w6 + 3)
+                        z = ((((w1 + 13) * 26 + (w2 + 10)) * 26 + (w5 + 9)) // 26) * 26 + (w6 + 3)
+                else:
+                    if w6 == w5 + 5:
+                        x = 0
+                        y = 0
+                        z = ((((w1 + 13) * 26 + (w2 + 10)) * 26 + (w4 + 1)) * 26 + (w5 + 9)) // 26
+                    else:
+                        x = 1
+                        y = (w6 + 3)
+                        z = (((((w1 + 13) * 26 + (w2 + 10)) * 26 + (w4 + 1)) * 26 + (w5 + 9)) // 26) * 26 + (w6 + 3)
+                alu.reset(mon)
+                for bf in mon:
+                    bf()
+                if alu.x[0] != x or alu.y[0] != y or alu.z[0] != z:
+                    print(f'{"".join(num) -> {alu}}')
+                    print(f'expected x={x}, y={y}, z={z}')
+                    break
+            else:
+                print('test 6 passes')
+        # test6()
+
+        # simplify above
+        def test6b():
+            for num in it.product('123456789', repeat=3):
+                w1, w2, w5 = int(num[0]), int(num[1]), int(num[2])
+                vorig = (((w1 + 13) * 26 + (w2 + 10)) * 26 + (w5 + 9)) // 26
+                v = (w1 + 13) * 26 + (w2 + 10)
+                if v != vorig:
+                    raise AssertionError(f'{"".join(num) -> {v} vs {vorig}')
+
+            for num in it.product('123456789', repeat=4):
+                w1, w2, w4, w5 = int(num[0]), int(num[1]), int(num[2]), int(num[3])
+                vorig = ((((w1 + 13) * 26 + (w2 + 10)) * 26 + (w4 + 1)) * 26 + (w5 + 9)) // 26
+                v = (w1 + 13) * 26**2 + (w2 + 10) * 26 + (w4 + 1)
+                if v != vorig:
+                    raise AssertionError(f'{"".join(num) -> {v} vs {vorig}')
+
+            # verify final form
+            for num in it.product('123456789', repeat=6):
+                w1, w2, w3, w4, w5, w6 = int(num[0]), int(num[1]), int(num[2]), int(num[3]), int(num[4]), int(num[5])
+                if w3 == 9 and w4 == 1:
+                    if w6 == w5 + 5:
+                        x = 0
+                        y = 0
+                        z = (w1 + 13) * 26 + (w2 + 10)
+                    else:
+                        x = 1
+                        y = (w6 + 3)
+                        z = (w1 + 13) * 26**2 + (w2 + 10) * 26 + (w6 + 3)
+                else:
+                    if w6 == w5 + 5:
+                        x = 0
+                        y = 0
+                        z = (w1 + 13) * 26**2 + (w2 + 10) * 26 + (w4 + 1)
+                    else:
+                        x = 1
+                        y = (w6 + 3)
+                        z = (w1 + 13) * 26**3 + (w2 + 10) * 26**2 + (w4 + 1) * 26 + (w6 + 3)
+                alu.reset(mon)
+                for bf in mon:
+                    bf()
+                if alu.x[0] != x or alu.y[0] != y or alu.z[0] != z:
+                    print(f'{"".join(num) -> {alu}}')
+                    print(f'expected x={x}, y={y}, z={z}')
+                    break
+            else:
+                print('test 6b passes')
+        # test6b()
+
+        def test7():
+            # verify final form
+            for num in it.product('123456789', repeat=7):
+                w1, w2, w3, w4, w5, w6, w7 = int(num[0]), int(num[1]), int(num[2]), int(num[3]), int(num[4]), int(num[5]), int(num[6])
+                x = 1
+                y = w7 + 5
+
+                if w3 == 9 and w4 == 1:
+                    if w6 == w5 + 5:
+                        z = (w1 + 13) * 26**2 + (w2 + 10) * 26 + (w7 + 5)
+                    else:
+                        z = (w1 + 13) * 26**3 + (w2 + 10) * 26**2 + (w6 + 3) * 26 + (w7 + 5)
+                else:
+                    if w6 == w5 + 5:
+                        z = (w1 + 13) * 26**3 + (w2 + 10) * 26**2 + (w4 + 1) * 26 + (w7 + 5)
+                    else:
+                        z = (w1 + 13) * 26**4 + (w2 + 10) * 26**3 + (w4 + 1) * 26**2 + (w6 + 3) * 26 + (w7 + 5)
+                alu.reset(mon)
+                for bf in mon:
+                    bf()
+                if alu.x[0] != x or alu.y[0] != y or alu.z[0] != z:
+                    print(f'{"".join(num) -> {alu}}')
+                    print(f'expected x={x}, y={y}, z={z}')
+                    break
+            else:
+                print('test 7 passes')
+        # test7()
+
+        def test8():
+            # verify final form
+            for num in it.product('123456789', repeat=8):
+                w1, w2, w3, w4, w5, w6, w7, w8 = int(num[0]), int(num[1]), int(num[2]), int(num[3]), int(num[4]), int(num[5]), int(num[6]), int(num[7])
+                x = 1
+                y = w8 + 1
+
+                if w3 == 9 and w4 == 1:
+                    if w6 == w5 + 5:
+                        z = (w1 + 13) * 26**3 + (w2 + 10) * 26**2 + (w7 + 5) * 26 + (w8 + 1)
+                    else:
+                        z = (w1 + 13) * 26**4 + (w2 + 10) * 26**3 + (w6 + 3) * 26**2 + (w7 + 5) * 26 + (w8 + 1)
+                else:
+                    if w6 == w5 + 5:
+                        z = (w1 + 13) * 26**4 + (w2 + 10) * 26**3 + (w4 + 1) * 26**2 + (w7 + 5) * 26 + (w8 + 1)
+                    else:
+                        z = (w1 + 13) * 26**5 + (w2 + 10) * 26**4 + (w4 + 1) * 26**3 + (w6 + 3) * 26**2 + (w7 + 5) * 26 + (w8 + 1)
+                alu.reset(mon)
+                for bf in mon:
+                    bf()
+                if alu.x[0] != x or alu.y[0] != y or alu.z[0] != z:
+                    print(f'{"".join(num) -> {alu}}')
+                    print(f'expected x={x}, y={y}, z={z}')
+                    break
+            else:
+                print('test 8 passes')
+        # test8()
+
+        def test10():
+            i = 0
+            for num in it.product('123456789' repeat=5):
+                w1, w2, w7, w8, w9 = int(num[0]), int(num[1]), int(num[2]), int(num[3]), int(num[4])
+                vorig = ((w1 + 13) * 26**4 + (w2 + 10) * 26**3 + (w7 + 5) * 26**2 + (w8 + 1) * 26 + w9) % 26 - 2
+                v = w9 - 2
+                if v != vorig:
+                    raise AssertionError(f'{"".join(num) -> {v} vs {vorig}')
+                if i > 1000:
+                    break
+        # test10()
+
+        def test11():
+            i = 0
+            for num in it.product('123456789' repeat=5):
+                w1, w2, w7, w8, w9 = int(num[0]), int(num[1]), int(num[2]), int(num[3]), int(num[4])
+                vorig = (w1 + 13) * 26**5 + (w2 + 10) * 26**4 + (w6 + 3) * 26**3 + (w7 + 5) * 26**2 + (w8 + 1) * 26 + 29
+                v = w9 - 2
+                if v != vorig:
+                    raise AssertionError(f'{"".join(num) -> {v} vs {vorig}')
+                if i > 1000:
+                    break
+        # test11()
+
+        def solve():
+            maxn, minn = 0, 2**64
+            w3, w4 = 9, 1
+            for num in it.product('123456789', repeat=6):
+                w1, w2, w5, w7, w8, w9 = int(num[0]), int(num[1]), int(num[2]), int(num[3]), int(num[4]), int(num[5])
+                w6 = w5 + 5
+                w10 = w9 - 2
+                w11 = w8 - 4
+                w12 = w7 - 6
+                w13 = w2 - 3
+                w14 = w1 + 3
+                if w6 > 9 or w10 < 1 or w11 < 1 or w12 < 1 or w13 < 1 or w14 > 9:
+                    continue
+
+                ws = [w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14]
+                wstr = ''.join([str(w) for w in ws])
+                wnum = int(wstr)
+                alu.reset(ws)
+                for bf in mon:
+                    bf()
+                if alu.z[0] != 0:
+                    raise AssertionError(f'{wstr} -> {alu}')
+                if wnum > maxn:
+                    maxn = wnum
+                if wnum < minn:
+                    minn = wnum
+
+            return maxn, minn
+
+        return solve()
+
+    maxn, minn = solve_p1p2()
+    print(f'part i ans = {maxn}')
+    print(f'part ii ans = {minn}')

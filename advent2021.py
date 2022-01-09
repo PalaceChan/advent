@@ -2250,3 +2250,62 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
     maxn, minn = solve_p1p2()
     print(f'part i ans = {maxn}')
     print(f'part ii ans = {minn}')
+
+## Problem 25
+import os
+import numpy as np
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    d = {'v': -1, '>': 1, '.': 0}
+    rd = {-1: 'v', 1:'>', 2:'>', 3:'>', 0:'.'}
+    rows = []
+    for l in f:
+        row = [d[c] for c in list(l.rstrip())]
+        rows.append(row)
+
+    m = np.array(rows)
+    ms = [m. m.copy()]
+    ni, nj = ms[0].shape
+
+    def dump(m):
+        rows = []
+        for r in m:
+            row = ''.join([rd[i] for i in r])
+            rows.append(row)
+        print('\n'.join(rows))
+
+    def solve_p1():
+        s = 0
+
+        while True:
+            m = ms[s % 2]
+            n = ms[(s + 1) % 2]
+            n[:] = m[:]
+
+            s += 1
+            moved = 0
+
+            # >
+            for j in range(nj-1, -1, -1):
+                jj = (j + 1) % nj
+                move = np.where((m[:,j] == 1) & (m[:,jj] == 0))[0]
+                moved += move.size
+                m[move, j] = 2
+                m[move, jj] = 3
+                n[move, j] = 0
+                n[move, jj] = 1
+
+            # v
+            for i in range(ni-1, -1, -1):
+                ii = (i + 1) % ni
+                move = np.where((m[i,:] == -1) & ((m[ii,:] == 0) | (m[ii,:] == 2)))[0]
+                moved += move.size
+                n[i, move] = 0
+                n[ii, move] = -1
+
+            if moved == 0:
+                break
+
+        return s
+
+    print(f'ans = {solve_p1()}')

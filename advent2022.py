@@ -285,6 +285,28 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
 ## Problem 8
 import os
+import numpy as np
 
-with open(f"{os.getcwd()}/test.txt", "r") as f:
-    pass
+def p1(f):
+    rows = []
+    for l in f:
+        rows.append([int(c) for c in l.rstrip()])
+    m = np.array(rows)
+    v = np.zeros_like(m)
+    nr, nc = m.shape
+    exterior = 2 * (nr + nc) - 4 # border visibile
+
+    for r in range(1, nr):
+        top_down, down_top = r, nr - r -1
+        v[top_down,:] += np.all(m[top_down,:] > m[0:top_down,:], axis=0)
+        v[down_top,:] += np.all(m[down_top,:] > m[(down_top+1):,:], axis=0)
+    for c in range(1, nc):
+        left_right, right_left = c, nc - c -1
+        v[:,left_right] += np.all(m[:,left_right] > m[:,0:left_right].T, axis=0)
+        v[:,right_left] += np.all(m[:,right_left] > m[:,(right_left+1):].T, axis=0)
+
+    interior = np.sum(v[1:(nr-1),1:(nc-1)] > 0)
+    print(exterior + interior)
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    p1(f)

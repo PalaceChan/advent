@@ -200,5 +200,91 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 ## Problem 7
 import os
 
+class File:
+    def __init__(self, name, ftype, size):
+        self.name = name
+        self.ftype = ftype
+        self.size = size
+        self.parent = None
+        self.children = []
+
+    @classmethod
+    def create(cls, name, ftype, size, parent):
+        f = cls(name, ftype, size)
+        f.parent = parent
+        return f
+
+    def propagate(self, sz):
+        self.size += sz
+        if self.name != '/':
+            self.parent.propagate(sz)
+
+    def dump(self, depth = 0):
+        sfx = f'(dir, size={self.size})' if self.ftype == 'd' else f'(file, size={self.size})'
+        print(' ' * depth + f'- {self.name} {sfx}')
+        for c in self.children:
+            c.dump(depth + 1)
+
+def p1(f):
+    def _helper(f):
+        tot = 0
+        ok = f.ftype == 'd' and f.size <= 100000
+        if ok:
+            tot += f.size
+        for c in f.children:
+            tot += _helper(c)
+        return tot
+
+    tot = _helper(f)
+    print(tot)
+
+def p2(f):
+    have = 7e7 - fs.size
+    need = 3e7 - have
+    cands = []
+    def _helper(f, cands, need):
+        ok = f.ftype == 'd' and f.size >= need and f.size
+        if ok:
+            cands.append(f)
+        for c in f.children:
+            _helper(c, cands, need)
+
+    _helper(f, cands, need)
+    cands.sort(key=lambda x: x.size)
+    print(f'name={cands[0].name} size={cands[0].size}')
+
+def build_fs(f):
+    root = File.create('/', 'd', 0, None)
+    root.parent = root
+
+    next(f)
+    wd = root
+    for l in f:
+        if l.startswith('$ cd '):
+            tgt = l.removeprefix('$ cd ').rstrip()
+            if tgt == '..':
+                wd = wd.parent
+            else:
+                wd = next(d for d in wd.children if d.name == tgt)
+        elif l.startswith('$ ls'):
+            pass
+        else:
+            x, fn = l.rstrip().split(' ')
+            ft = 'd' if x == 'dir' else 'f'
+            sz = 0 if x == 'dir' else int(x)
+            if fn not in wd.children:
+                wd.children.append(File.create(fn, ft, sz, wd))
+                wd.propagate(sz)
+
+    return root
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    fs = build_fs(f)
+    # p1(fs)
+    p2(fs)
+
+## Problem 8
+import os
+
 with open(f"{os.getcwd()}/test.txt", "r") as f:
     pass

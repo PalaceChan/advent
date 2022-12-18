@@ -285,6 +285,7 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
 ## Problem 8
 import os
+import itertools as it
 import numpy as np
 
 def p1(f):
@@ -308,5 +309,181 @@ def p1(f):
     interior = np.sum(v[1:(nr-1),1:(nc-1)] > 0)
     print(exterior + interior)
 
+def p2(f):
+    rows = []
+    for l in f:
+        rows.append([int(c) for c in l.rstrip()])
+    m = np.array(rows)
+    nr, nc = m.shape
+
+    def ls(i, j):
+        s = 0
+        v = m[i,j]
+        while j > 0:
+            j -= 1
+            s += 1
+            if m[i,j] >= v:
+                break
+        return s
+
+    def rs(i, j):
+        s = 0
+        v = m[i,j]
+        while j < nc-1:
+            j += 1
+            s += 1
+            if m[i,j] >= v:
+                break
+        return s
+
+    def ts(i, j):
+        s = 0
+        v = m[i,j]
+        while i > 0:
+            i -= 1
+            s += 1
+            if m[i,j] >= v:
+                break
+        return s
+
+    def bs(i, j):
+        s = 0
+        v = m[i,j]
+        while i < nr-1:
+            i += 1
+            s += 1
+            if m[i,j] >= v:
+                break
+        return s
+
+    ms = 0
+    for i, j in it.product(range(nr), range(nc)):
+        s = ls(i,j) * rs(i,j) * ts(i,j) * bs(i,j)
+        if s > ms:
+            ms = s
+    print(ms)
+
 with open(f"{os.getcwd()}/input.txt", "r") as f:
-    p1(f)
+    p2(f)
+
+## Problem 9
+import os
+import numpy as np
+
+def p1(f):
+    def calc_tails(h, t):
+        d = (h[0] - t[0], h[1] - t[1])
+        a = None
+        if abs(d[0]) == abs(d[1]):
+            a = t # d is (0,0) or one away diagonally
+        elif abs(d[0]) + abs(d[1]) == 1:
+            a = t # d is one along an axis and same the other axis
+        elif abs(d[0]) + abs(d[1]) == 2:
+            a = (t[0] + np.sign(d[0]), t[1] + np.sign(d[1]))
+        elif abs(d[0]) + abs(d[1]) == 3:
+            a = (t[0] + np.sign(d[0]), t[1] + np.sign(d[1]))
+        else:
+            import pdb; pdb.set_trace()
+            assert(False)
+        # print(f"h={h[0],h[1]}, t={t[0],t[1]}, a={a[0],a[1]}")
+        return a
+
+    h = (4,0)
+    t = (4,0)
+    positions = set()
+    positions.add((4,0))
+    for l in f:
+        d, s = l.rstrip().split(' ')
+        for i in range(int(s)):
+            # m = np.full([5,6], '.')
+            # m[t[0], t[1]] = 'T'
+            # print(d)
+            if d == 'R':
+                h = (h[0], h[1] + 1)
+                t = calc_tails(h, t)
+            elif d == 'L':
+                h = (h[0], h[1]-1)
+                t = calc_tails(h, t)
+            elif d == 'U':
+                h = (h[0]-1, h[1])
+                t = calc_tails(h, t)
+            elif d == 'D':
+                h = (h[0]+1, h[1])
+                t = calc_tails(h, t)
+            # m[h[0], h[1]] = 'H'
+            # m[t[0], t[1]] = 'X'
+            # print(m)
+            positions.add(t)
+        positions.add(t)
+        # m = np.full([5,6], '.')
+        # m[t[0], t[1]] = 'T'
+        # m[h[0], h[1]] = 'H'
+        # print(m)
+
+    # n = np.full([5,6], '.')
+    # for pos in positions:
+    #     n[pos[0], pos[1]] = 'T'
+    # print(n)
+    print(len(positions))
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    def calc_tail(h, t):
+        d = (h[0] - t[0], h[1] - t[1])
+        a = None
+        if abs(d[0]) == abs(d[1]) and abs(d[0]) <= 1:
+            a = t # d is (0,0) or one away diagonally
+        elif abs(d[0]) == abs(d[1]) and abs(d[0]) == 2:
+            # d is two away diagonally
+            a = (t[0] + np.sign(d[0]), t[1] + np.sign(d[1]))
+        elif abs(d[0]) + abs(d[1]) == 1:
+            a = t # d is one along an axis and same the other axis
+        elif abs(d[0]) + abs(d[1]) == 2:
+            a = (t[0] + np.sign(d[0]), t[1] + np.sign(d[1]))
+        elif abs(d[0]) + abs(d[1]) == 3:
+            a = (t[0] + np.sign(d[0]), t[1] + np.sign(d[1]))
+        else:
+            import pdb; pdb.set_trace()
+            assert(False)
+        return a
+    
+    def calc_tails(h, t):
+        a = [None] * len(t)
+        a[0] = calc_tail(h, t[0])
+        # print(f"CALC{1} h={h[0],h[1]}, t{1}={t[0][0],t[0][1]}, a={a[0][0],a[0][1]}")
+        for i in range(1, len(t)):
+            a[i] = calc_tail(a[i-1], t[i])
+            # print(f"CALC{i+1} h={h[0],h[1]}, t{i}={a[i-1][0],a[i-1][1]}, a={a[i][0],a[i][1]}")
+        return a
+
+    def paint(h, t):
+        m = np.full([21,26], '.')
+        m[h[0], h[1]] = 'H'
+        for i, p in reversed(list(enumerate(t))):
+            m[p[0], p[1]] = str(i+1)
+        print(m)
+
+    h = (15,11)
+    t = [(15,11) for _ in range(9)]
+    positions = set()
+    positions.add((15,11))
+    for l in f:
+        d, s = l.rstrip().split(' ')
+        # print(l)
+        # paint(h, t)
+        for i in range(int(s)):
+            if d == 'R':
+                h = (h[0], h[1] + 1)
+                t = calc_tails(h, t)
+            elif d == 'L':
+                h = (h[0], h[1]-1)
+                t = calc_tails(h, t)
+            elif d == 'U':
+                h = (h[0]-1, h[1])
+                t = calc_tails(h, t)
+            elif d == 'D':
+                h = (h[0]+1, h[1])
+                t = calc_tails(h, t)
+            positions.add(t[-1])
+        # paint(h, t)
+        positions.add(t[-1])
+    print(len(positions))

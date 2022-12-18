@@ -487,3 +487,68 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
         # paint(h, t)
         positions.add(t[-1])
     print(len(positions))
+
+## Problem 10
+import os
+import numpy as np
+
+def p1(f):
+    curr = 0
+    xval = 1
+    pdic = {}
+    def is_probe_cycle(i):
+            ans = (i == 20 or (i - 20) % 40 == 0)
+            return ans
+
+    for l in f:
+        if l.rstrip() == 'noop':
+            curr += 1
+            if is_probe_cycle(curr):
+                pdic[curr] = xval
+        else:
+            ins, val = l.rstrip().split(' ')
+            assert(ins) == 'addx'
+            for _ in range(2):
+                curr += 1
+                if is_probe_cycle(curr):
+                    pdic[curr] = xval
+            xval += int(val)
+    s = 0
+    for c, v in pdic.items():
+        # print(f"{c}th v={v} s={c*v}")
+        s += c*v
+    print(s)
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    curr = 0
+    xval = 1
+    nr, nc = 6, 40
+    i, j = 0, 0
+    m = np.full([nr,nc], '.')
+
+    def get_next_pix(i, j):
+        if j+1 < nc:
+            return i, j+1
+        else:
+            return i+1,0
+
+    def touches_sprite(i, j, xval):
+        return xval - 1 <= j and j <= xval + 1
+
+    for l in f:
+        if l.rstrip() == 'noop':
+            curr += 1
+            if touches_sprite(i, j, xval):
+                m[i, j] = '#'
+            i, j = get_next_pix(i, j)
+        else:
+            ins, val = l.rstrip().split(' ')
+            assert(ins) == 'addx'
+            for _ in range(2):
+                curr += 1
+                if touches_sprite(i, j, xval):
+                    m[i, j] = '#'
+                i, j = get_next_pix(i, j)
+            xval += int(val)
+
+    print(m)

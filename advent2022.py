@@ -623,3 +623,107 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
     # pprint.pp(monkeys)
     # p1(monkeys)
     p2(monkeys)
+
+## Problem 12
+import os
+import heapq
+import time
+import itertools as it
+import numpy as np
+
+class Vertex():
+    def __init__(self, letr, elev, coor):
+        self.letr = letr
+        self.elev = elev
+        self.coor = coor
+        self.dist = np.inf
+        self.nbor = []
+
+    def __lt__(self, other):
+        return self.dist < other.dist
+
+def solve(beg, end, m):
+    Q = [v for r in m for v in r]
+    heapq.heapify(Q)
+    while len(Q) > 0:
+        u = heapq.heappop(Q)
+        d = False
+        for v in u.nbor:
+            alt = u.dist + 1
+            if alt < v.dist:
+                v.dist = alt
+                d = True
+        if d:
+            heapq.heapify(Q)
+
+    return m[end[0]][end[1]].dist
+
+def p1(beg, end, m):
+    t0 = time.time()
+    sol = solve(beg, end, m)
+    t1 = time.time()
+    print(f"{sol} (t = {t1-t0})")
+
+def p2(end, m):
+    t0 = time.time()
+    begd = {}
+    nr, nc = len(m), len(m[0])
+    for i,j in it.product(range(nr), range(nc)):
+        if m[i][j].elev == 0:
+            begd[(i,j)] = np.inf
+
+    for beg in begd.keys():
+        for i,j in it.product(range(nr), range(nc)):
+            if m[i][j].coor == beg:
+                m[i][j].dist = 0
+            else:
+                m[i][j].dist = np.inf
+        begd[beg] = sol = solve(beg, end, m)
+
+    bbeg = None
+    bsol = np.inf
+    for beg, sol in begd.items():
+        if sol < bsol:
+            bbeg = beg
+            bsol = sol
+
+    t1 = time.time()
+    print(f"solved {len(begd)} cases, best was {bsol} from {bbeg} (t={t1-t0})")
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    m = []
+    beg = None
+    end = None
+    for l in f:
+        i = len(m)
+        row = list(l.rstrip())
+        vrow = []
+        for j, x in enumerate(row):
+            e = ord(x) - ord('a')
+            if x == 'S':
+                e = ord('a') - ord('a')
+                beg = (i, j)
+            if x == 'E':
+                e = ord('z') - ord('a')
+                end = (i, j)
+
+            v = Vertex(x, e, (i, j))
+            if x == 'S':
+                v.dist = 0
+            vrow.append(v)
+        m.append(vrow)
+
+    nr, nc = len(m), len(m[0])
+    for i,j in it.product(range(nr), range(nc)):
+        v = m[i][j]
+        if i-1 >= 0 and m[i-1][j].elev <= v.elev+1:
+            v.nbor.append(m[i-1][j])
+        if i+1 < nr and m[i+1][j].elev <= v.elev+1:
+            v.nbor.append(m[i+1][j])
+        if j-1 >= 0 and m[i][j-1].elev <= v.elev+1:
+            v.nbor.append(m[i][j-1])
+        if j+1 < nc and m[i][j+1].elev <= v.elev+1:
+            v.nbor.append(m[i][j+1])
+
+    # p1(beg, end, m)
+    p2(end, m)

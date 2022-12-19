@@ -576,14 +576,29 @@ def p1(monkeys):
     t1 = time.time()
     print(f"{b[0] * b[1]} (took {t1 - t0})")
 
-with open(f"{os.getcwd()}/test.txt", "r") as f:
+def p2(monkeys):
+    n = 1
+    for k in monkeys:
+        n *= k.div
+    t0 = time.time()
+    for round in range(10000):
+        for i, k in enumerate(monkeys):
+            while len(k.items) > 0:
+                w = k.items.popleft()
+                nw = eval(k.op.replace('old', str(w))) % n
+                tgt = k.tgt_true if (nw % k.div == 0) else k.tgt_false
+                monkeys[tgt].items.append(nw)
+                k.business += 1
+    # pprint.pp(monkeys)
+    b = sorted([k.business for k in monkeys], reverse=True)
+    t1 = time.time()
+    print(f"{b[0] * b[1]} (took {t1 - t0})")
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
     @dataclass
     class Monkey():
         items: deque
         op: str = ''
-        add: int = 0
-        mul: int = 1
-        sqr: bool = False
         div: int = -69
         tgt_true: int = -1
         tgt_false: int = -1
@@ -599,14 +614,6 @@ with open(f"{os.getcwd()}/test.txt", "r") as f:
                 k.items = deque([int(x) for x in m.groups()[0].split(',')])
             elif m := re.search(r"\s+Operation: new = (.*)", l):
                 k.op = m.groups()[0]
-                if k.op == 'old * old':
-                    k.sqr = True
-                elif k.op.startswith('old + '):
-                    k.add = int(k.op.removeprefix('old + '))
-                elif k.op.startswith('old * '):
-                    k.mul = int(k.op.removeprefix('old * '))
-                else:
-                    assert False
             elif m := re.search(r"\s+Test: divisible by ([0-9]+)", l):
                 k.div = int(m.groups()[0])
             elif m := re.search(r"\s+If true: throw to monkey ([0-9]+)", l):
@@ -614,4 +621,5 @@ with open(f"{os.getcwd()}/test.txt", "r") as f:
             elif m := re.search(r"\s+If false: throw to monkey ([0-9]+)", l):
                 k.tgt_false = int(m.groups()[0])
     # pprint.pp(monkeys)
-    p1(monkeys)
+    # p1(monkeys)
+    p2(monkeys)

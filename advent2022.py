@@ -727,3 +727,72 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
     # p1(beg, end, m)
     p2(end, m)
+
+## Problem 13
+import os
+import numpy as np
+
+def in_order(la, lb):
+    for a, b in zip(la, lb):
+        if isinstance(a, int) and isinstance(b, int):
+            s = np.sign(a - b)
+            if s != 0:
+                return s
+        elif isinstance(a, list) and isinstance(b, list):
+            s = in_order(a, b)
+            if s != 0:
+                return s
+        else:
+            na = a if isinstance(a, list) else [a]
+            nb = b if isinstance(b, list) else [b]
+            s = in_order(na, nb)
+            if s != 0:
+                return s
+
+    # ran through list and could not determine
+    s = np.sign(len(la) - len(lb))
+    return s
+
+def p1(lines):
+    pairs = []
+    for i in range(0, len(lines), 3):
+        pairs.append((eval(lines[i]), eval(lines[i+1])))
+
+    order = []
+    for i, (la, lb) in enumerate(pairs):
+        s = in_order(la, lb)
+        order.append(s)
+
+    idx = [i+1 for i,s in enumerate(order) if s < 0]
+    print(sum(idx))
+
+def p2(lines):
+    class Packet():
+        def __init__(self, l):
+            self.l = l
+
+        def __eq__(self, other):
+            return self.l == other.l
+
+        def __lt__(self, other):
+            s = in_order(self.l, other.l)
+            return s < 0
+
+        def __repr__(self):
+            return str(self.l)
+
+    packets = [ Packet([[2]]), Packet([[6]]) ]
+    for i in range(0, len(lines), 3):
+        packets.append(Packet(eval(lines[i])))
+        packets.append(Packet(eval(lines[i+1])))
+
+    packets.sort()
+    # pprint.pp(packets)
+    i2 = packets.index(Packet([[2]]))
+    i6 = packets.index(Packet([[6]]))
+    print(f"i2={i2+1}, i6={i6+1} sol={(i2+1)*(i6+1)}")
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    lines = f.readlines()
+    # p1(lines)
+    p2(lines)

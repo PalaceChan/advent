@@ -796,3 +796,135 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
     lines = f.readlines()
     # p1(lines)
     p2(lines)
+
+## Problem 14
+import os
+import numpy as np
+
+def p1(lbnd, rbnd, dbnd, arrs):
+    narrs = []
+    for arr in arrs:
+        narrs.append([(x-lbnd,y) for x,y in arr])
+    arrs = narrs
+    m = np.full([dbnd+1+1,rbnd-lbnd+1+2], '.')
+    m[0,500-lbnd+1] = '+'
+    for arr in arrs:
+        for i in range(1, len(arr)):
+            x0,y0 = arr[i-1]
+            x1,y1 = arr[i]
+            cslc = slice(x0+1, x1+2) if x0 <= x1 else slice(x1+1, x0+2)
+            dslc = slice(y0, y1+1) if y0 <= y1 else slice(y1, y0+1)
+            m[dslc, cslc] = '#'
+
+    def sim(m):
+        nr, nc = m.shape
+        i,j = 0, 500-lbnd+1
+        for _ in range(1000):
+            ni, nj = i+1, j
+            if ni < nr and m[ni, nj] == '.':
+                i,j = ni, nj
+                continue
+            ni, nj = i+1, j-1
+            if ni < nr and m[ni, nj] == '.':
+                i,j = ni,nj
+                continue
+            ni,nj = i+1, j+1
+            if ni < nr and m[ni,nj] == '.':
+                i,j = ni,nj
+                continue
+
+            # nowhere to go or hit the abyss row
+            if ni == nr:
+                return True
+            else:
+                m[i,j] = 'o'
+                return False
+        else:
+            assert(False)
+
+    u = 0
+    for i in range(1000):
+        done = sim(m)
+        if done:
+            break
+        else:
+            u += 1
+    else:
+        assert False
+    print(u)
+
+def p2(lbnd, rbnd, dbnd, arrs):
+    def paint(m):
+        for r in m:
+            print(''.join(list(r)))
+
+    npads = 1000
+    narrs = []
+    for arr in arrs:
+        narrs.append([(x-lbnd,y) for x,y in arr])
+    arrs = narrs
+    m = np.full([dbnd+3,rbnd-lbnd+1+2*npads], '.')
+    m[0,500-lbnd+npads] = '+'
+    for arr in arrs:
+        for i in range(1, len(arr)):
+            x0,y0 = arr[i-1]
+            x1,y1 = arr[i]
+            cslc = slice(x0+npads, x1+npads+1) if x0 <= x1 else slice(x1+npads, x0+npads+1)
+            dslc = slice(y0, y1+1) if y0 <= y1 else slice(y1, y0+1)
+            m[dslc, cslc] = '#'
+    m[-1,:] = '#'
+    # paint(m)
+
+    def sim(m):
+        nr, nc = m.shape
+        i,j = 0, 500-lbnd+npads
+        if m[i,j] == 'o':
+            return True
+        for _ in range(1000):
+            ni, nj = i+1, j
+            if ni < nr and m[ni, nj] == '.':
+                i,j = ni, nj
+                continue
+            ni, nj = i+1, j-1
+            if ni < nr and m[ni, nj] == '.':
+                i,j = ni,nj
+                continue
+            ni,nj = i+1, j+1
+            if ni < nr and m[ni,nj] == '.':
+                i,j = ni,nj
+                continue
+
+            # sand flow stopped
+            m[i,j] = 'o'
+            return False
+        else:
+            assert(False)
+
+    u = 0
+    for i in range(100000):
+        done = sim(m)
+        if done:
+            break
+        else:
+            u += 1
+    else:
+        assert False
+    print(u)
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    lbnd = np.inf
+    rbnd = 0
+    dbnd = 0
+    arrs = []
+    for l in f:
+        arr = []
+        for s in l.rstrip().split(' -> '):
+            x, y = s.split(',')
+            arr.append((int(x), int(y)))
+            lbnd = min(int(x), lbnd)
+            rbnd = max(int(x), rbnd)
+            dbnd = max(int(y), dbnd)
+        arrs.append(arr)
+
+    # p1(lbnd, rbnd, dbnd, arrs)
+    p2(lbnd, rbnd, dbnd, arrs)

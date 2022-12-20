@@ -928,3 +928,97 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
     # p1(lbnd, rbnd, dbnd, arrs)
     p2(lbnd, rbnd, dbnd, arrs)
+
+## Problem 15
+import os
+import re
+import time
+import pprint
+
+class Sb():
+    @staticmethod
+    def dist(x0,y0,x1,y1):
+        return abs(x0-x1) + abs(y0-y1)
+
+    def __init__(self, sx, sy, bx, by):
+        self.sx = int(sx)
+        self.sy = int(sy)
+        self.bx = int(bx)
+        self.by = int(by)
+        self.dis = Sb.dist(self.sx, self.sy, self.bx, self.by)
+
+    def __repr__(self):
+        return f"S{(self.sx, self.sy)} B{(self.bx, self.by)} d={self.dis}"
+
+def p1(sensors, y):
+    off = set()
+    ivals = []
+    for s in sensors:
+        if s.by == y:
+            off.add(s.bx)
+        dy = abs(s.sy - y)
+        if dy <= s.dis:
+            lb = s.sx - (s.dis - dy)
+            ub = s.sx + (s.dis - dy)
+            ivals.append([lb, ub])
+            if dy == 0:
+                off.add(s.sx)
+    ivals.sort(key = lambda x: x[0])
+    # print(ivals)
+    merged = [ivals.pop(0)]
+    for ival in ivals:
+        if merged[-1][1] < ival[0]:
+            merged.append(ival)
+        elif merged[-1][1] < ival[1]:
+            merged[-1][1] = ival[1]
+    # print(merged)
+    print(sum([ival[1]-ival[0]+1 for ival in merged]) - len(off))
+
+def p2(sensors, lim):
+    t0 = time.time()
+    hole = None
+    for y in range(lim):
+        ivals = []
+        for s in sensors:
+            if s.by == y:
+                ivals.append([s.bx, s.bx])
+            dy = abs(s.sy - y)
+            if dy <= s.dis:
+                lb = s.sx - (s.dis - dy)
+                ub = s.sx + (s.dis - dy)
+                ivals.append([lb, ub])
+        ivals.sort(key = lambda x: x[0])
+        merged = [ivals.pop(0)]
+        for ival in ivals:
+            if merged[-1][1] < ival[0]:
+                merged.append(ival)
+            elif merged[-1][1] < ival[1]:
+                merged[-1][1] = ival[1]
+
+        if len(merged) == 1:
+            assert merged[0][0] <= 0 and merged[0][1] >= lim
+        else:
+            for i in range(1, len(merged)):
+                pre = merged[i-1]
+                cur = merged[i]
+                dx = cur[0] - pre[1]
+                if dx > 1:
+                    assert dx == 2
+                    hole = (pre[1] + 1, y)
+                    # print(merged)
+        if hole is not None:
+            break
+    t1 = time.time()
+    print(f"solution {hole[0]*lim + hole[1]} (t={t1-t0})")
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    sensors = []
+    for l in f:
+        if m := re.search("x=([0-9-]+), y=([0-9-]+): closest beacon is at x=([0-9-]+), y=([0-9-]+)", l):
+            sx, sy, bx, by = m.groups()
+            sb = Sb(sx, sy, bx, by)
+            sensors.append(sb)
+
+    # pprint.pp(sensors)
+    # p1(sensors, 2000000)
+    p2(sensors, 4000000)

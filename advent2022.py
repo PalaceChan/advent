@@ -1169,3 +1169,82 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
     # pprint.pp(v)
     # p1(v, init_pend)
     p2(v, init_pend)
+
+## Problem 17
+import os
+import time
+import numpy as np
+import itertools as it
+
+def paint(m, frok):
+    rmin = np.min(frok[:,0])
+    nr, nc = m.shape
+    mm = m[rmin:nr,:].copy()
+    srok = frok - [rmin, 0]
+    for row in srok:
+        mm[row[0], row[1]] = '@'
+    for row in mm:
+        print(''.join(row))
+    print('')
+
+def collides(m, rok):
+    for row in rok:
+        if m[row[0], row[1]] != '.':
+            return True
+    return False
+
+def p1(rit, jit, nbox):
+    t0 = time.time()
+    nr, nc = 4*nbox, 7
+    m = np.full([nr, nc], '.')
+
+    rpos = nr - 1
+    for s in range(nbox):
+        rok = next(rit)
+        rmax = np.max(rok[:,0])
+        rok = rok + [rpos - rmax - 3, 2]
+        # paint(m, rok)
+
+        rbnd = np.array([np.min(rok[:,0]), np.max(rok[:,0])])
+        cbnd = np.array([np.min(rok[:,1]), np.max(rok[:,1])])
+        for _ in range(1000):
+            jet = next(jit)
+            if jet == '<' and cbnd[0] - 1 >= 0:
+                nrok = rok - [0,1]
+                if not collides(m, nrok):
+                    rok = nrok
+                    cbnd -= 1
+            elif jet == '>' and cbnd[1] + 1 < nc:
+                nrok = rok + [0,1]
+                if not collides(m, nrok):
+                    rok = nrok
+                    cbnd += 1
+
+            moved_down = False
+            if rbnd[1] + 1 < nr:
+                nrok = rok + [1, 0]
+                if not collides(m, nrok):
+                    rok = nrok
+                    rbnd += 1
+                    moved_down = True
+            if not moved_down:
+                rpos = min(rpos, rbnd[0]-1)
+                for row in rok:
+                    m[row[0], row[1]] = '#'
+                break
+        else:
+            assert False
+    t1 = time.time()
+    print(f"height = {nr - rpos - 1} (t={t1-t0})")
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    jets = f.read().rstrip()
+
+    r0 = np.array([[0, 0], [0, 1], [0, 2], [0, 3]])
+    r1 = np.array([[0, 1], [1, 0], [1, 1], [1, 2], [2, 1]])
+    r2 = np.array([[0, 2], [1, 2], [2, 0], [2, 1], [2, 2]])
+    r3 = np.array([[0, 0], [1, 0], [2, 0], [3, 0]])
+    r4 = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+    rit = it.cycle([r0, r1, r2, r3, r4])
+    jit = it.cycle(jets)
+    p1(rit, jit, 2022)

@@ -1174,7 +1174,7 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 import os
 import time
 import numpy as np
-import itertools as it
+from collections import defaultdict
 
 def paint(m, frok):
     rmin = np.min(frok[:,0])
@@ -1193,14 +1193,34 @@ def collides(m, rok):
             return True
     return False
 
-def p1(rit, jit, nbox):
+def solve(roks, jets, nbox):
     t0 = time.time()
-    nr, nc = 4*nbox, 7
+    nr, nc = 10**4, 7
     m = np.full([nr, nc], '.')
+    fast_solved = False
 
+    ridx = 0
+    jidx = 0
+    patt = defaultdict(list)
     rpos = nr - 1
     for s in range(nbox):
-        rok = next(rit)
+        key = (ridx, jidx)
+        if len(patt[key]) > 1:
+            fst = patt[key][0]
+            sec = patt[key][1]
+            sd = sec[0] - fst[0]
+            hd = sec[1] - fst[1]
+            if (nbox - fst[0]) % sd == 0:
+                mults = (nbox - sec[0]) // sd
+                soln = sec[1] + mults*hd
+                t1 = time.time()
+                print(f"fast_solved[{(s, ridx, jidx, fst, sec, sd, hd, mults)}] height = {soln} (t={t1-t0})")
+                fast_solved = True
+                break
+
+        patt[key].append((s, nr - rpos - 1))
+        rok = roks[ridx]
+        ridx = (ridx + 1) % len(roks)
         rmax = np.max(rok[:,0])
         rok = rok + [rpos - rmax - 3, 2]
         # paint(m, rok)
@@ -1208,7 +1228,8 @@ def p1(rit, jit, nbox):
         rbnd = np.array([np.min(rok[:,0]), np.max(rok[:,0])])
         cbnd = np.array([np.min(rok[:,1]), np.max(rok[:,1])])
         for _ in range(1000):
-            jet = next(jit)
+            jet = jets[jidx]
+            jidx = (jidx + 1) % len(jets)
             if jet == '<' and cbnd[0] - 1 >= 0:
                 nrok = rok - [0,1]
                 if not collides(m, nrok):
@@ -1234,8 +1255,10 @@ def p1(rit, jit, nbox):
                 break
         else:
             assert False
-    t1 = time.time()
-    print(f"height = {nr - rpos - 1} (t={t1-t0})")
+
+    if not fast_solved:
+        t1 = time.time()
+        print(f"height = {nr - rpos - 1} (t={t1-t0})")
 
 with open(f"{os.getcwd()}/input.txt", "r") as f:
     jets = f.read().rstrip()
@@ -1245,6 +1268,6 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
     r2 = np.array([[0, 2], [1, 2], [2, 0], [2, 1], [2, 2]])
     r3 = np.array([[0, 0], [1, 0], [2, 0], [3, 0]])
     r4 = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-    rit = it.cycle([r0, r1, r2, r3, r4])
-    jit = it.cycle(jets)
-    p1(rit, jit, 2022)
+    roks = [r0, r1, r2, r3, r4]
+    # solve(roks, jets, 2022)
+    solve(roks, jets, 1000000000000)

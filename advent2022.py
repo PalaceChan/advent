@@ -1022,3 +1022,150 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
     # pprint.pp(sensors)
     # p1(sensors, 2000000)
     p2(sensors, 4000000)
+
+## Problem 16
+import os
+import re
+import time
+
+mscore = 0
+
+def p1(v, init_pend):
+    t0 = time.time()
+
+    def sim(src, pos, score, tleft, pend):
+        if len(pend) == 0:
+            return # all valves open
+        if tleft <= 1:
+            return # nothing you can do with one minute left
+
+        global mscore
+        flo, cands = v[pos]
+        can_open = flo > 0 and pos in pend
+
+        # in both cant open or choose not to open scenarios doubling back is wasteful
+        for dst in cands:
+            if src != dst:
+                sim(src=pos, pos=dst, score=score, tleft=tleft-1, pend=pend.copy())
+
+        # open this valve
+        if can_open:
+            npend = pend - {pos}
+            ntleft = tleft - 1
+            nscore = score + ntleft * flo
+            mscore = max(mscore, nscore)
+            for dst in cands:
+                sim(src=pos, pos=dst, score=nscore, tleft=ntleft-1, pend=npend.copy())
+
+    sim(src=None, pos='AA', score=0, tleft=30, pend=init_pend)
+    t1 = time.time()
+    print(f"{mscore} (t={t1-t0})")
+
+def p2(v, init_pend):
+    t0 = time.time()
+    memo = {}
+
+    def solve(src_a, src_b, pos_a, pos_b, tleft, pend):
+        sim_key = ''.join(sorted([pos_a] + [pos_b]) + sorted(pend))
+        if sim_key in memo:
+            sim_tleft, sim_val = memo[sim_key]
+            if tleft <= sim_tleft: # cached is an upper bound value and we just care about a max
+                return sim_val
+
+        if len(pend) == 0:
+            return 0 # all valves open
+        if tleft <= 1:
+            return 0 # nothing you can do with one minute left
+
+        max_flo = 0
+        max_flo2 = 0
+        for key in pend:
+            flo = v[key][0]
+            if flo > max_flo:
+                max_flo2 = max_flo
+                max_flo = flo
+            elif max_flo2 < flo < max_flo:
+                max_flo2 = flo
+
+        flo_a, cands_a = v[pos_a]
+        flo_b, cands_b = v[pos_b]
+        can_open_a = flo_a > 0 and pos_a in pend
+        can_open_b = flo_b > 0 and pos_b in pend
+
+        # if two minutes left and cant open any valves here game is also over
+        if tleft == 2 and not (can_open_a or can_open_b):
+            return 0
+
+        possible_scores = [0]
+
+        # you cannot ignore a valve if:
+        # 1. there is only one left
+        # 2. it is the max flo valve
+        # 3. it is the second largest flo valve and the other valve at play is the max flo one
+        cond_3_a = (flo_a == max_flo2 and flo_b == max_flo)
+        cond_3_b = (flo_b == max_flo2 and flo_a == max_flo)
+        must_open_a = can_open_a and (len(pend) == 1 or flo_a == max_flo or cond_3_a)
+        must_open_b = can_open_b and (len(pend) == 1 or flo_b == max_flo or cond_3_b)
+
+        # both A and B cant open or choose not to open
+        if not (must_open_a or must_open_b):
+            for dst_a in cands_a:
+                for dst_b in cands_b:
+                    if src_a != dst_a and src_b != dst_b and dst_a != dst_b:
+                        s = solve(src_a=pos_a, src_b=pos_b, pos_a=dst_a, pos_b=dst_b, tleft=tleft-1, pend=pend.copy())
+                        possible_scores.append(s)
+
+        # A opens valve, B cant open or chooses not to open (force A to move to same spot to penalize his minute)
+        if can_open_a and not must_open_b:
+            npend = pend - {pos_a}
+            nscore = (tleft - 1) * flo_a
+            dst_a = pos_a
+            for dst_b in cands_b:
+                if src_b != dst_b and dst_a != dst_b:
+                    s = nscore + solve(src_a=pos_a, src_b=pos_b, pos_a=dst_a, pos_b=dst_b, tleft=tleft-1, pend=npend.copy())
+                    possible_scores.append(s)
+
+        # B opens valve, A cant open or chooses not to open (force B to move to same spot to penalize his minute)
+        if can_open_b and not must_open_a:
+            npend = pend - {pos_b}
+            nscore = (tleft - 1) * flo_b
+            dst_b = pos_b
+            for dst_a in cands_a:
+                if src_a != dst_a and dst_a != dst_b:
+                    s = nscore + solve(src_a=pos_a, src_b=pos_b, pos_a=dst_a, pos_b=dst_b, tleft=tleft-1, pend=npend.copy())
+                    possible_scores.append(s)
+
+        # both A and B open valves (force their move to self loop to penalize the minute)
+        if can_open_a and can_open_b and (pos_a != pos_b):
+            npend = pend - {pos_a, pos_b}
+            nscore = (tleft - 1) * (flo_a + flo_b)
+            dst_a = pos_a
+            dst_b = pos_b
+            if dst_a != dst_b:
+                s = nscore + solve(src_a=pos_a, src_b=pos_b, pos_a=dst_a, pos_b=dst_b, tleft=tleft-1, pend=npend.copy())
+                possible_scores.append(s)
+
+        best_score = max(possible_scores)
+        memo[sim_key] = (tleft, best_score)
+        return best_score
+
+    mscore = solve(src_a=None, src_b=None, pos_a='AA', pos_b='AA', tleft=26, pend=init_pend)
+    t1 = time.time()
+    print(f"mscore={mscore} (t={t1-t0})")
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    v = {}
+    init_pend = set()
+    for l in f:
+        if m := re.search("Valve ([A-Z]+) has flow rate=([0-9]+); tunnels? leads? to valves? (.*)", l):
+            src, fstr, dsts = m.groups()
+            val = (int(fstr), tuple(dsts.split(', ')))
+            v[src] = val
+            if val[0] > 0:
+                init_pend.add(src)
+        else:
+            raise ValueError(l)
+
+    # pprint.pp(v)
+    # p1(v, init_pend)
+    p2(v, init_pend)

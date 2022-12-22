@@ -1271,3 +1271,184 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
     roks = [r0, r1, r2, r3, r4]
     # solve(roks, jets, 2022)
     solve(roks, jets, 1000000000000)
+
+## Problem 18
+import os
+import numpy as np
+import itertools as it
+from collections import deque, defaultdict
+
+def get_cubes(f):
+    pts = []
+    for l in f:
+        x, y, z = l.rstrip().split(',')
+        pts.append((int(x)+1, int(y)+1, int(z)+1))
+
+    m = np.zeros((max([p[0] for p in pts])+2, max([p[1] for p in pts])+2, max([p[2] for p in pts])+2))
+    for x,y,z in pts:
+        m[x,y,z] = 1
+
+    return pts, m
+
+def p1(pts, m):
+    ts = 0
+    nx, ny, nz = m.shape
+    for x,y,z in pts:
+        s = 6
+
+        if x + 1 < nx:
+            s -= m[x + 1, y, z]
+        if y + 1 < ny:
+            s -= m[x, y + 1, z]
+        if z + 1 < nz:
+            s -= m[x, y, z + 1]
+
+        if x - 1 >= 0:
+            s -= m[x - 1, y, z]
+        if y - 1 >= 0:
+            s -= m[x, y - 1, z]
+        if z - 1 >= 0:
+            s -= m[x, y, z - 1]
+
+        ts += s
+    print(ts)
+
+def p2(pts, m):
+    # memo caches result of scanning starting from coord (not in m) toward d along ax, result can be None or a face
+    # coord --> { (d, ax) --> face }
+    memo = defaultdict(dict)
+    faces = set() # face: ((x,y,z), (d, ax)) belongs to cube at x,y,z (in m) that got hit by steam moving along d on ax
+    # face 0 is sentinel value of nothing
+    done_cubes = set() # (x,y,z) here once scans have emitted from him already, (these are only for 0s in m)
+
+    # these outer layers are all 0 in m
+    pend = set()
+    nx, ny, nz = m.shape
+    for x,y,z in it.product([0, nx-1], range(ny), range(nz)):
+        pend.add((x,y,z))
+    for x,y,z in it.product(range(nx), [0, ny-1],  range(nz)):
+        pend.add((x,y,z))
+    for x,y,z in it.product(range(nx), range(ny),  [0, nz-1]):
+        pend.add((x,y,z))
+    pend = deque(pend)
+
+    for _ in range(100000):
+        cb = pend.popleft()
+        cd = memo.get(cb, {})
+
+        # increasing along x-axis
+        dax = (1, 0)
+        if cd.get(dax, None) is None:
+            x,y,z = cb
+            cbs = [cb]
+            fc = 0 # sentinel
+            for i in range(x+1, nx):
+                if m[i, y, z] == 1:
+                    fc = ((i, y, z), dax)
+                    faces.add(fc)
+                    break
+                else:
+                    cbs.append((i,y,z))
+            # cache that all cubes in 'cbs' strike face 'fc' (which could be sentinel)
+            # add them to pending cubes for search
+            for i, new_cb in enumerate(cbs):
+                memo[new_cb][dax] = fc
+                if i > 0 and new_cb not in done_cubes: pend.append(new_cb)
+
+        # increasing along y-axis
+        dax = (1,1)
+        if cd.get(dax, None) is None:
+            x,y,z = cb
+            cbs = [cb]
+            fc = 0
+            for i in range(y+1, ny):
+                if m[x, i, z] == 1:
+                    fc = ((x, i, z), dax)
+                    faces.add(fc)
+                    break
+                else:
+                    cbs.append((x,i,z))
+            for i, new_cb in enumerate(cbs):
+                memo[new_cb][dax] = fc
+                if i > 0 and new_cb not in done_cubes: pend.append(new_cb)
+
+        # increasing along z-axis
+        dax = (1,2)
+        if cd.get(dax, None) is None:
+            x,y,z = cb
+            cbs = [cb]
+            fc = 0
+            for i in range(z+1, nz):
+                if m[x, y, i] == 1:
+                    fc = ((x, y, i), dax)
+                    faces.add(fc)
+                    break
+                else:
+                    cbs.append((x,y,i))
+            for i, new_cb in enumerate(cbs):
+                memo[new_cb][dax] = fc
+                if i > 0 and new_cb not in done_cubes: pend.append(new_cb)
+
+        # decreasing along x-axis
+        dax = (-1, 0)
+        if cd.get(dax, None) is None:
+            x,y,z = cb
+            cbs = [cb]
+            fc = 0
+            for i in range(x-1, -1, -1):
+                if m[i, y, z] == 1:
+                    fc = ((i, y, z), dax)
+                    faces.add(fc)
+                    break
+                else:
+                    cbs.append((i,y,z))
+            for i, new_cb in enumerate(cbs):
+                memo[new_cb][dax] = fc
+                if i > 0 and new_cb not in done_cubes: pend.append(new_cb)
+
+        # decreasing along y-axis
+        dax = (-1, 1)
+        if cd.get(dax, None) is None:
+            x,y,z = cb
+            cbs = [cb]
+            fc = 0
+            for i in range(y-1, -1, -1):
+                if m[x, i, z] == 1:
+                    fc = ((x, i, z), dax)
+                    faces.add(fc)
+                    break
+                else:
+                    cbs.append((x,i,z))
+            for i, new_cb in enumerate(cbs):
+                memo[new_cb][dax] = fc
+                if i > 0 and new_cb not in done_cubes: pend.append(new_cb)
+
+        # decreasing along z-axis
+        dax = (-1, 2)
+        if cd.get(dax, None) is None:
+            x,y,z = cb
+            cbs = [cb]
+            fc = 0
+            for i in range(z-1, -1, -1):
+                if m[x, y, i] == 1:
+                    fc = ((x, y, i), dax)
+                    faces.add(fc)
+                    break
+                else:
+                    cbs.append((x,y,i))
+            for i, new_cb in enumerate(cbs):
+                memo[new_cb][dax] = fc
+                if i > 0 and new_cb not in done_cubes: pend.append(new_cb)
+
+        done_cubes.add(cb)
+        if len(pend) == 0:
+            break
+    else:
+        assert False
+
+    print(len(faces))
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    pts, m = get_cubes(f)
+    # p1(pts, m)
+    p2(pts, m)

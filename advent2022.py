@@ -1483,6 +1483,90 @@ class Blueprint:
 
 Bots = namedtuple("Bots", "ore clay obsidian geode")
 
+def solve(bp, ore, clay, obsidian, bots, tleft):
+    key = hash((bots, ore, clay, obsidian, tleft))
+    if key in memo:
+        return memo[key]
+
+    if tleft == 1:
+        return bots.geode
+
+    can_build_geode = (ore >= bp.geode_bot_ore_cost and obsidian >= bp.geode_bot_obsidian_cost)
+    if tleft == 2:
+        if can_build_geode:
+            return 2*bots.geode + 1
+        else:
+            return 2*bots.geode
+
+    scores = []
+
+    # if you can build a geode bot, always build it
+    if can_build_geode:
+        nore = ore - bp.geode_bot_ore_cost + bots.ore
+        nobsidian = obsidian - bp.geode_bot_obsidian_cost + bots.obsidian
+        nbots = Bots(bots.ore, bots.clay, bots.obsidian, bots.geode+1)
+        s = bots.geode + solve(bp, nore, clay+bots.clay, nobsidian, nbots, tleft-1)
+        scores.append(s)
+    else:
+        # just accrue minerals
+        s = bots.geode + solve(bp, ore+bots.ore, clay+bots.clay, obsidian+bots.obsidian, bots, tleft-1)
+        scores.append(s)
+
+        # build an ore bot (below 4 rounds left makes no sense)
+        if ore >= bp.ore_bot_ore_cost and tleft > 4:
+            nore = ore - bp.ore_bot_ore_cost + bots.ore
+            nbots = Bots(bots.ore+1, bots.clay, bots.obsidian, bots.geode)
+            s = bots.geode + solve(bp, nore, clay+bots.clay, obsidian+bots.obsidian, nbots, tleft-1)
+            scores.append(s)
+
+        # build a clay bot (below 7 rounds left makes no sense)
+        if ore >= bp.clay_bot_ore_cost and tleft > 7:
+            nore = ore - bp.clay_bot_ore_cost + bots.ore
+            nbots = Bots(bots.ore, bots.clay+1, bots.obsidian, bots.geode)
+            s = bots.geode + solve(bp, nore, clay+bots.clay, obsidian+bots.obsidian, nbots, tleft-1)
+            scores.append(s)
+
+        # build an obsidian bot (below 4 rounds left makes no sense)
+        if ore >= bp.obsidian_bot_ore_cost and clay >= bp.obsidian_bot_clay_cost and tleft > 4:
+            nore = ore - bp.obsidian_bot_ore_cost + bots.ore
+            nclay = clay - bp.obsidian_bot_clay_cost + bots.clay
+            nbots = Bots(bots.ore, bots.clay, bots.obsidian+1, bots.geode)
+            s = bots.geode + solve(bp, nore, nclay, obsidian+bots.obsidian, nbots, tleft-1)
+            scores.append(s)
+
+    best_score = max(scores)
+    if tleft > 4: # use less storage for the leaves
+        memo[key] = best_score
+    return best_score
+
+def p1(bps, init_bots, tleft):
+    scores = {}
+    t0 = time.time()
+    for bp in bps:
+        memo = {}
+        st0 = time.time()
+        mscore = solve(bp, ore=0, clay=0, obsidian=0, bots=init_bots, tleft=tleft)
+        st1 = time.time()
+        scores[bp.id] = (mscore, st1-st0)
+        print(f"bp={bp.id} mscore={mscore} (t={st1-st0})")
+    qsum = sum([bid * s[0] for bid, s in scores.items()])
+    t1 = time.time()
+    print(f"qsum={qsum} (t={t1-t0})")
+
+def p2(bps, init_bots, tleft):
+    scores = {}
+    t0 = time.time()
+    for bp in bps[0:3]:
+        memo = {}
+        st0 = time.time()
+        mscore = solve(bp, ore=0, clay=0, obsidian=0, bots=init_bots, tleft=tleft)
+        st1 = time.time()
+        scores[bp.id] = (mscore, st1-st0)
+        print(f"bp={bp.id} mscore={mscore} (t={st1-st0})")
+    mul = np.prod([s[0] for _, s in scores.items()])
+    t1 = time.time()
+    print(f"mul={mul} (t={t1-t0})")
+
 with open(f"{os.getcwd()}/input.txt", "r") as f:
     bps = []
     for l in f:
@@ -1493,64 +1577,5 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
             assert False
     # pprint.pp(bps)
     init_bots = Bots(1, 0, 0, 0)
-
-    def solve(bp, ore, clay, obsidian, bots, tleft):
-        key = (bots, ore, clay, obsidian, tleft)
-        if key in memo:
-            return memo[key]
-
-        if tleft == 1:
-            return bots.geode
-
-        scores = []
-
-        # if you can build a geode bot, always build it
-        if ore >= bp.geode_bot_ore_cost and obsidian >= bp.geode_bot_obsidian_cost:
-            nore = ore - bp.geode_bot_ore_cost + bots.ore
-            nobsidian = obsidian - bp.geode_bot_obsidian_cost + bots.obsidian
-            nbots = Bots(bots.ore, bots.clay, bots.obsidian, bots.geode+1)
-            s = bots.geode + solve(bp, nore, clay+bots.clay, nobsidian, nbots, tleft-1)
-            scores.append(s)
-        else:
-            # just accrue minerals
-            s = bots.geode + solve(bp, ore+bots.ore, clay+bots.clay, obsidian+bots.obsidian, bots, tleft-1)
-            scores.append(s)
-
-            # build an ore bot
-            if ore >= bp.ore_bot_ore_cost:
-                nore = ore - bp.ore_bot_ore_cost + bots.ore
-                nbots = Bots(bots.ore+1, bots.clay, bots.obsidian, bots.geode)
-                s = bots.geode + solve(bp, nore, clay+bots.clay, obsidian+bots.obsidian, nbots, tleft-1)
-                scores.append(s)
-
-            # build a clay bot
-            if ore >= bp.clay_bot_ore_cost:
-                nore = ore - bp.clay_bot_ore_cost + bots.ore
-                nbots = Bots(bots.ore, bots.clay+1, bots.obsidian, bots.geode)
-                s = bots.geode + solve(bp, nore, clay+bots.clay, obsidian+bots.obsidian, nbots, tleft-1)
-                scores.append(s)
-
-            # build an obsidian bot
-            if ore >= bp.obsidian_bot_ore_cost and clay >= bp.obsidian_bot_clay_cost:
-                nore = ore - bp.obsidian_bot_ore_cost + bots.ore
-                nclay = clay - bp.obsidian_bot_clay_cost + bots.clay
-                nbots = Bots(bots.ore, bots.clay, bots.obsidian+1, bots.geode)
-                s = bots.geode + solve(bp, nore, nclay, obsidian+bots.obsidian, nbots, tleft-1)
-                scores.append(s)
-
-        best_score = max(scores)
-        memo[key] = best_score
-        return best_score
-
-    scores = {}
-    t0 = time.time()
-    for bp in bps:
-        memo = {}
-        st0 = time.time()
-        mscore = solve(bp, ore=0, clay=0, obsidian=0, bots=init_bots, tleft=24)
-        st1 = time.time()
-        scores[bp.id] = (mscore, st1-st0)
-        print(f"bp={bp.id} mscore={mscore} (t={st1-st0})")
-    qsum = sum([bid * s[0] for bid, s in scores.items()])
-    t1 = time.time()
-    print(f"qsum={qsum} (t={t1-t0})")
+    # p1(bps, init_bots, 24)
+    p2(bps, init_bots, 32)

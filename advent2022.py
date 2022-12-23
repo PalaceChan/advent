@@ -1452,3 +1452,105 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
     pts, m = get_cubes(f)
     # p1(pts, m)
     p2(pts, m)
+
+## Problem 19
+import os
+import re
+import time
+import pprint
+from copy import copy
+from dataclasses import dataclass
+from collections import namedtuple
+
+@dataclass
+class Blueprint:
+    id: int
+    ore_bot_ore_cost: int
+    clay_bot_ore_cost: int
+    obsidian_bot_ore_cost: int
+    obsidian_bot_clay_cost: int
+    geode_bot_ore_cost: int
+    geode_bot_obsidian_cost: int
+
+    def __post_init__(self):
+        self.id = int(self.id)
+        self.ore_bot_ore_cost = int(self.ore_bot_ore_cost)
+        self.clay_bot_ore_cost = int(self.clay_bot_ore_cost)
+        self.obsidian_bot_ore_cost = int(self.obsidian_bot_ore_cost)
+        self.obsidian_bot_clay_cost = int(self.obsidian_bot_clay_cost)
+        self.geode_bot_ore_cost = int(self.geode_bot_ore_cost)
+        self.geode_bot_obsidian_cost = int(self.geode_bot_obsidian_cost)
+
+Bots = namedtuple("Bots", "ore clay obsidian geode")
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    bps = []
+    for l in f:
+        if m := re.search("Blueprint (\d+): Each ore robot costs (\d+) ore. Each clay robot costs (\d+) ore. Each obsidian robot costs (\d+) ore and (\d+) clay. Each geode robot costs (\d+) ore and (\d+) obsidian.", l):
+            bp = Blueprint(*m.groups())
+            bps.append(bp)
+        else:
+            assert False
+    # pprint.pp(bps)
+    init_bots = Bots(1, 0, 0, 0)
+
+    def solve(bp, ore, clay, obsidian, bots, tleft):
+        key = (bots, ore, clay, obsidian, tleft)
+        if key in memo:
+            return memo[key]
+
+        if tleft == 1:
+            return bots.geode
+
+        scores = []
+
+        # if you can build a geode bot, always build it
+        if ore >= bp.geode_bot_ore_cost and obsidian >= bp.geode_bot_obsidian_cost:
+            nore = ore - bp.geode_bot_ore_cost + bots.ore
+            nobsidian = obsidian - bp.geode_bot_obsidian_cost + bots.obsidian
+            nbots = Bots(bots.ore, bots.clay, bots.obsidian, bots.geode+1)
+            s = bots.geode + solve(bp, nore, clay+bots.clay, nobsidian, nbots, tleft-1)
+            scores.append(s)
+        else:
+            # just accrue minerals
+            s = bots.geode + solve(bp, ore+bots.ore, clay+bots.clay, obsidian+bots.obsidian, bots, tleft-1)
+            scores.append(s)
+
+            # build an ore bot
+            if ore >= bp.ore_bot_ore_cost:
+                nore = ore - bp.ore_bot_ore_cost + bots.ore
+                nbots = Bots(bots.ore+1, bots.clay, bots.obsidian, bots.geode)
+                s = bots.geode + solve(bp, nore, clay+bots.clay, obsidian+bots.obsidian, nbots, tleft-1)
+                scores.append(s)
+
+            # build a clay bot
+            if ore >= bp.clay_bot_ore_cost:
+                nore = ore - bp.clay_bot_ore_cost + bots.ore
+                nbots = Bots(bots.ore, bots.clay+1, bots.obsidian, bots.geode)
+                s = bots.geode + solve(bp, nore, clay+bots.clay, obsidian+bots.obsidian, nbots, tleft-1)
+                scores.append(s)
+
+            # build an obsidian bot
+            if ore >= bp.obsidian_bot_ore_cost and clay >= bp.obsidian_bot_clay_cost:
+                nore = ore - bp.obsidian_bot_ore_cost + bots.ore
+                nclay = clay - bp.obsidian_bot_clay_cost + bots.clay
+                nbots = Bots(bots.ore, bots.clay, bots.obsidian+1, bots.geode)
+                s = bots.geode + solve(bp, nore, nclay, obsidian+bots.obsidian, nbots, tleft-1)
+                scores.append(s)
+
+        best_score = max(scores)
+        memo[key] = best_score
+        return best_score
+
+    scores = {}
+    t0 = time.time()
+    for bp in bps:
+        memo = {}
+        st0 = time.time()
+        mscore = solve(bp, ore=0, clay=0, obsidian=0, bots=init_bots, tleft=24)
+        st1 = time.time()
+        scores[bp.id] = (mscore, st1-st0)
+        print(f"bp={bp.id} mscore={mscore} (t={st1-st0})")
+    qsum = sum([bid * s[0] for bid, s in scores.items()])
+    t1 = time.time()
+    print(f"qsum={qsum} (t={t1-t0})")

@@ -1586,7 +1586,7 @@ import numpy as np
 
 class Node:
     def __init__(self, val):
-        self.val = int(val)
+        self.val = val
         self.head = False
         self.prev = None
         self.next = None
@@ -1611,11 +1611,41 @@ def paint(nodes):
     for _ in range(N):
         vals.append(str(cur.val))
         cur = cur.next
-    print(', '.join(vals))
+    print(', '.join(vals) + '\n')
 
-with open(f"{os.getcwd()}/input.txt", "r") as f:
-    l = f.read()
-    nodes = [Node(v) for v in l.rstrip().split('\n')]
+def move_fwd(n, val):
+    d = n
+    for i in range(val):
+        d = d.next
+        if d == n:
+            d = d.next
+    if n.head:
+        n.head = False
+        n.next.head = True
+    n.prev.next = n.next
+    n.next.prev = n.prev
+    d.next.prev = n
+    n.next = d.next
+    d.next = n
+    n.prev = d
+
+def move_bak(n, val):
+    d = n
+    for i in range(val):
+        d = d.prev
+        if d == n:
+            d = d.prev
+    if n.head:
+        n.head = False
+        n.next.head = True
+    n.prev.next = n.next
+    n.next.prev = n.prev
+    d.prev.next = n
+    n.prev = d.prev
+    n.next = d
+    d.prev = n
+
+def solve(nodes, rnds):
     N = len(nodes)
 
     for i, cur in enumerate(nodes):
@@ -1628,39 +1658,34 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
         nxt.prev = cur
 
     # pprint.pp(nodes)
+    # print("Initial arrangement:")
     # paint(nodes)
-    for i, n in enumerate(nodes):
-        if n.val > 0:
-            d = n
-            for i in range(n.val):
-                d = d.next
-                if d == n:
-                    d = d.next
-            if n.head:
-                n.head = False
-                n.next.head = True
-            n.prev.next = n.next
-            n.next.prev = n.prev
-            d.next.prev = n
-            n.next = d.next
-            d.next = n
-            n.prev = d
-        elif n.val < 0:
-            d = n
-            for i in range(-n.val):
-                d = d.prev
-                if d == n:
-                    d = d.prev
-            if n.head:
-                n.head = False
-                n.next.head = True
-            n.prev.next = n.next
-            n.next.prev = n.prev
-            d.prev.next = n
-            n.prev = d.prev
-            n.next = d
-            d.prev = n
-        # print(f"{n.val} moves:")
+    for rnd in range(rnds):
+        for i, n in enumerate(nodes):
+            if n.val > 0:
+                if n.val < N:
+                    move_fwd(n, n.val)
+                else:
+                    val = n.val
+                    if n.head: # head is edge case
+                        val -= 1
+                        move_fwd(n, 1)
+                    # now every (N-1)-th is the same
+                    val = val % (N-1)
+                    move_fwd(n, val)
+            elif n.val < 0:
+                if n.val > -N:
+                    move_bak(n, -n.val)
+                else:
+                    val = abs(n.val)
+                    if n.next.head: # tail edge case
+                        val -= 1
+                        move_bak(n, 1)
+                    # now every (N-1)-th is the same
+                    val = val % (N-1)
+                    move_bak(n, val)
+            # print(f"{n.val} moves:")
+        # print(f"After {rnd+1} round of mixing:")
         # paint(nodes)
 
     # find 0
@@ -1683,3 +1708,16 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
         elif i == 3000:
             vals.append(cur.val)
     print(f"{vals} sum is {sum(vals)}")
+
+def p1(l):
+    nodes = [Node(int(v)) for v in l.rstrip().split('\n')]
+    solve(nodes, 1)
+
+def p2(l, key, rnds):
+    nodes = [Node(int(v)*key) for v in l.rstrip().split('\n')]
+    solve(nodes, rnds)
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    l = f.read()
+    # p1(l)
+    p2(l, 811589153, 10)

@@ -1458,7 +1458,6 @@ import os
 import re
 import time
 import pprint
-from copy import copy
 from dataclasses import dataclass
 from collections import namedtuple
 
@@ -1579,3 +1578,108 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
     init_bots = Bots(1, 0, 0, 0)
     # p1(bps, init_bots, 24)
     p2(bps, init_bots, 32)
+
+## Problem 20
+import os
+import pprint
+import numpy as np
+
+class Node:
+    def __init__(self, val):
+        self.val = int(val)
+        self.head = False
+        self.prev = None
+        self.next = None
+
+    def __repr__(self):
+        pstr = "x" if self.prev is None else f"[{self.prev.val}]"
+        nstr = "x" if self.next is None else f"[{self.next.val}]"
+        hstr = "_h" if self.head else ""
+        return f"{pstr} <- [{self.val}{hstr}] -> {nstr}"
+
+def paint(nodes):
+    N = len(nodes)
+    cur = None
+    for n in nodes:
+        if n.head:
+            cur = n
+            break
+    else:
+        assert False
+
+    vals = []
+    for _ in range(N):
+        vals.append(str(cur.val))
+        cur = cur.next
+    print(', '.join(vals))
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    l = f.read()
+    nodes = [Node(v) for v in l.rstrip().split('\n')]
+    N = len(nodes)
+
+    for i, cur in enumerate(nodes):
+        prv = nodes[(i-1) % N]
+        nxt = nodes[(i+1) % N]
+        cur.head = (i == 0)
+        prv.next = cur
+        cur.prev = prv
+        cur.next = nxt
+        nxt.prev = cur
+
+    # pprint.pp(nodes)
+    # paint(nodes)
+    for i, n in enumerate(nodes):
+        if n.val > 0:
+            d = n
+            for i in range(n.val):
+                d = d.next
+                if d == n:
+                    d = d.next
+            if n.head:
+                n.head = False
+                n.next.head = True
+            n.prev.next = n.next
+            n.next.prev = n.prev
+            d.next.prev = n
+            n.next = d.next
+            d.next = n
+            n.prev = d
+        elif n.val < 0:
+            d = n
+            for i in range(-n.val):
+                d = d.prev
+                if d == n:
+                    d = d.prev
+            if n.head:
+                n.head = False
+                n.next.head = True
+            n.prev.next = n.next
+            n.next.prev = n.prev
+            d.prev.next = n
+            n.prev = d.prev
+            n.next = d
+            d.prev = n
+        # print(f"{n.val} moves:")
+        # paint(nodes)
+
+    # find 0
+    cur = None
+    for n in nodes:
+        if n.val == 0:
+            cur = n
+            break
+    else:
+        assert False
+
+    # find 1000th, 2000th, 3000th numbers after
+    vals =[]
+    for i in range(1, 3001):
+        cur = cur.next
+        if i == 1000:
+            vals.append(cur.val)
+        elif i == 2000:
+            vals.append(cur.val)
+        elif i == 3000:
+            vals.append(cur.val)
+    print(f"{vals} sum is {sum(vals)}")

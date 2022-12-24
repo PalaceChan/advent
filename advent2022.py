@@ -1838,3 +1838,82 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
     # Monkey.p1(monkeys)
     Monkey.p2(monkeys)
+
+## Problem 22
+import os
+import re
+import pprint
+import numpy as np
+
+def paint(m, v, fac):
+    fac_v = {(0,1): '>', (1,0): 'v', (0,-1): '<', (-1,0): '^'}
+    for i, row in enumerate(m):
+        rstr = ''.join(row)
+        if v is not None and i == v[0]:
+            lrstr = list(rstr)
+            lrstr[v[1]] = fac_v[fac]
+            rstr = ''.join(lrstr)
+        print(rstr)
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    rows = []
+    mlen = 0
+    inss = None
+    for l in f:
+        if not l.rstrip():
+            inss = f.readline().rstrip()
+        else:
+            rows.append(l.rstrip())
+            mlen = max(mlen, len(rows[-1]))
+
+    m = np.full((len(rows), mlen), ' ')
+    pos = None
+    fac = (0, 1)
+    for i, row in enumerate(rows):
+        for j, ch in enumerate(row):
+            if pos is None and i == 0 and ch == '.':
+                pos = np.array((i,j))
+            m[i,j] = ch
+
+    def trans(s):
+        try:
+            return int(s)
+        except:
+            return s
+    inst = [trans(s) for s in re.split('(\d+)', inss) if s]
+
+    fac_d = {
+        'R': {(0,1): (1,0),   (1,0): (0,-1), (0,-1): (-1,0), (-1,0): (0,1)},
+        'L': {(0,1): (-1,0), (-1,0): (0,-1), (0,-1): (1,0),   (1,0): (0,1)},
+    }
+    fac_s = {(0,1): 0, (1,0): 1, (0,-1): 2, (-1,0): 3}
+    nr, nc = m.shape
+    dbg = 0
+    for ins in inst:
+        if isinstance(ins, str):
+            fac = fac_d[ins][fac]
+        else:
+            for i in range(ins):
+                x,y = pos
+                nx, ny = ((x + fac[0]) % nr, (y + fac[1]) % nc)
+                if m[nx,ny] == ' ':
+                    # advance until nx, ny are "valid"
+                    for _ in range(1000):
+                        nx, ny = ((nx + fac[0]) % nr, (ny + fac[1]) % nc)
+                        if m[nx,ny] != ' ':
+                            break
+                    else:
+                        assert False
+
+                # npos is either wall or valid
+                if m[nx,ny] == '#':
+                    break
+                else:
+                    assert m[nx,ny] == '.'
+                    pos = (nx,ny)
+
+    frow = 1+pos[0]
+    fcol = 1+pos[1]
+    ffac = fac_s[fac]
+    pwrd = 1000 * frow + 4 * fcol + ffac
+    print(f"solution = {pwrd}")

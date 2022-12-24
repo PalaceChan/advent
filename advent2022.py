@@ -1725,7 +1725,7 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 ## Problem 21
 import os
 import re
-import pprint
+import sympy as sym
 from collections import defaultdict
 
 class Monkey():
@@ -1737,17 +1737,18 @@ class Monkey():
         self.oper = None
         self.numb = None
 
+        # dirty if ancestor of humn
+        self.dirty = False
+
     def __repr__(self):
         prnt = self.prnt.name if self.prnt else None
         lcld = self.lcld.name if self.lcld else None
         rcld = self.rcld.name if self.rcld else None
-        return f"name={self.name} prnt={prnt} lcld={lcld} rcld={rcld} oper={self.oper} numb={self.numb}"
+        return f"name={self.name} prnt={prnt} lcld={lcld} rcld={rcld} oper={self.oper} numb={self.numb} dirty={self.dirty}"
 
     def eval(self):
         assert self.oper is not None or self.numb is not None
-        if self.oper is None:
-            return self.numb
-        elif self.oper == '+':
+        if self.oper == '+':
             self.numb = self.lcld.eval() + self.rcld.eval()
         elif self.oper == '-':
             self.numb = self.lcld.eval() - self.rcld.eval()
@@ -1756,6 +1757,64 @@ class Monkey():
         elif self.oper == '/':
             self.numb = self.lcld.eval() / self.rcld.eval()
         return self.numb
+
+    @staticmethod
+    def p1(monkeys):
+        root = monkeys['root']
+        root.eval()
+        print(f"solution = {root.numb}")
+
+    def soil(self):
+        if self.name != 'humn':
+            self.dirty = True
+        if self.prnt is not None:
+            self.prnt.soil()
+
+    def eval_if_dirty(self):
+        if not self.dirty:
+            return self.numb
+        else:
+            return self.eval()
+
+    def extract(self):
+        if not self.dirty:
+            return str(self.numb)
+        else:
+            lstr = self.lcld.extract()
+            rstr = self.rcld.extract()
+            return f"({lstr} {self.oper} {rstr})"
+
+    @staticmethod
+    def p2(monkeys):
+        monkeys['root'].eval()
+        monkeys['humn'].soil()
+        monkeys['humn'].numb = 'x'
+        leqn = monkeys['root'].lcld.extract()
+        reqn = monkeys['root'].rcld.extract()
+        eqn = f"{leqn} - {reqn}"
+        sol = sym.solveset(eqn)
+        print(f"solution = {int(next(iter(sol)))}")
+
+    # @staticmethod
+    # def old_p2(monkeys, xl):
+    #     humn = monkeys['humn']
+    #     rlcld = monkeys['root'].lcld
+    #     rrcld = monkeys['root'].rcld
+    #     humn.soil()
+    #     rlcld.eval()
+    #     rrcld.eval()
+
+    #     for x in xl:
+    #         humn.numb = x
+    #         lval = rlcld.eval_if_dirty()
+    #         rval = rrcld.eval_if_dirty()
+    #         if lval == rval:
+    #             t1 = time.time()
+    #             print(f"sol={x} t=({t1-t0})")
+    #             break
+    #     else:
+    #         t1 = time.time()
+    #         print(f"fail t=({t1-t0})")
 
 with open(f"{os.getcwd()}/input.txt", "r") as f:
     monkeys = defaultdict(Monkey)
@@ -1777,6 +1836,5 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
         else:
             raise ValueError(l)
 
-    # pprint.pp(monkeys)
-    sol = monkeys['root'].eval()
-    print(f"root yells {sol}")
+    # Monkey.p1(monkeys)
+    Monkey.p2(monkeys)

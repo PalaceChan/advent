@@ -1721,3 +1721,62 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
     l = f.read()
     # p1(l)
     p2(l, 811589153, 10)
+
+## Problem 21
+import os
+import re
+import pprint
+from collections import defaultdict
+
+class Monkey():
+    def __init__(self):
+        self.name = None
+        self.prnt = None
+        self.lcld = None
+        self.rcld = None
+        self.oper = None
+        self.numb = None
+
+    def __repr__(self):
+        prnt = self.prnt.name if self.prnt else None
+        lcld = self.lcld.name if self.lcld else None
+        rcld = self.rcld.name if self.rcld else None
+        return f"name={self.name} prnt={prnt} lcld={lcld} rcld={rcld} oper={self.oper} numb={self.numb}"
+
+    def eval(self):
+        assert self.oper is not None or self.numb is not None
+        if self.oper is None:
+            return self.numb
+        elif self.oper == '+':
+            self.numb = self.lcld.eval() + self.rcld.eval()
+        elif self.oper == '-':
+            self.numb = self.lcld.eval() - self.rcld.eval()
+        elif self.oper == '*':
+            self.numb = self.lcld.eval() * self.rcld.eval()
+        elif self.oper == '/':
+            self.numb = self.lcld.eval() / self.rcld.eval()
+        return self.numb
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    monkeys = defaultdict(Monkey)
+    for l in f:
+        if mtch := re.search("(\w+): (\w+) ([^\s]{1}) (\w+)", l):
+            name, lname, oper, rname = mtch.groups()
+            m = monkeys[name]
+            m.name = name
+            m.oper = oper
+            m.lcld = monkeys[lname]
+            m.lcld.name = lname
+            m.lcld.prnt = m
+            m.rcld = monkeys[rname]
+            m.rcld.name = rname
+            m.rcld.prnt = m
+        elif mtch := re.search("(\w+): (\d+)", l):
+            name, numb = mtch.groups()
+            monkeys[name].numb = int(numb)
+        else:
+            raise ValueError(l)
+
+    # pprint.pp(monkeys)
+    sol = monkeys['root'].eval()
+    print(f"root yells {sol}")

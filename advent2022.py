@@ -2194,3 +2194,100 @@ with open(f"{os.getcwd()}/{fname}.txt", "r") as f:
     fac_s = {(0,1): 0, (1,0): 1, (0,-1): 2, (-1,0): 3}
     # p1(m, pos, fac, fac_d, fac_s)
     p2(m, pos, fac, fac_d, fac_s, (fname == 'test'))
+
+## Problem 23
+import os
+import numpy as np
+from collections import defaultdict
+
+def get_bnds(coords):
+    mnx, mny = np.inf, np.inf
+    mxx, mxy = 0, 0
+    for x,y in coords:
+        mnx = min(mnx, x)
+        mny = min(mny, y)
+        mxx = max(mxx, x)
+        mxy = max(mxy, y)
+    return mnx, mxx, mny, mxy
+
+def paint(coords):
+    mnx, mxx, mny, mxy = get_bnds(coords)
+    dx = mxx - mnx + 1
+    dy = mxy - mny + 1
+    m = np.full((dx, dy), '.')
+    for x,y in coords:
+        m[x - mnx,y - mny] = '#'
+    for row in m:
+        print(''.join(row))
+    print()
+
+def cnt_empty(coords):
+    mnx, mxx, mny, mxy = get_bnds(coords)
+    dx = mxx - mnx + 1
+    dy = mxy - mny + 1
+    ar = dx*dy
+    return ar - len(coords)
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    coords = set()
+    for i,l in enumerate(f):
+        for j,r in enumerate(l.rstrip()):
+            if r == '#':
+                coords.add((i,j))
+
+    # print('Initial:')
+    # paint(coords)
+    m = np.full((3,3), 0)
+    diri = 0
+    dirs = [[(-1,0), (-1,1), (-1,-1)], [(1,0), (1,-1), (1,1)], [(0,-1), (-1,-1), (1,-1)], [(0,1), (-1,1), (1,1)]]
+    pos8 = [(0,1), (-1,1), (-1,0), (-1,-1), (0,-1), (1,-1), (1,0), (1,1)]
+    for rnd in range(1,11):
+        propc_d = {} # x,y to nx,ny
+        propn_d = defaultdict(int) # nx,ny -> count of elves who propose going there
+        moves = 0
+        for x,y in coords:
+            m.fill(0)
+            for dx,dy in pos8:
+                if (x+dx, y+dy) in coords:
+                    m[1+dx, 1+dy] = 1
+            if m.sum() > 0:
+                # propose moves, stop at first valid one
+                for i in range(4):
+                    dl = dirs[(diri+i) % 4]
+                    dx0, dy0 = dl[0]
+                    dx1, dy1 = dl[1]
+                    dx2, dy2 = dl[2]
+                    if m[1+dx0, 1+dy0] + m[1+dx1, 1+dy1]+ m[1+dx2, 1+dy2] == 0:
+                        nx, ny = x+dx0, y+dy0
+                        propc_d[(x,y)] = (nx,ny)
+                        propn_d[nx, ny] += 1
+                        moves += 1
+                        break
+                else:
+                    propc_d[(x,y)] = (x,y)
+            else:
+                propc_d[(x,y)] = (x,y)
+
+        # if nobody proposes a move we are done
+        if moves == 0:
+            print(f"rnd={rnd} nobody moved so done")
+            break
+        else:
+            # migrate
+            ncoords = set()
+            for (x,y), (nx,ny) in propc_d.items():
+                if (x,y) != (nx,ny):
+                    cnt = propn_d[(nx, ny)]
+                    if cnt == 1:
+                        ncoords.add((nx,ny))
+                    else:
+                        ncoords.add((x,y))
+                else:
+                    ncoords.add((x,y))
+            coords = ncoords
+            diri = (diri + 1) % 4
+            # print(f"After rnd={rnd} (moves={moves})")
+            # paint(coords)
+
+    nempty = cnt_empty(coords)
+    print(f"solution = {nempty}")

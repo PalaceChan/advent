@@ -2228,20 +2228,12 @@ def cnt_empty(coords):
     ar = dx*dy
     return ar - len(coords)
 
-with open(f"{os.getcwd()}/input.txt", "r") as f:
-    coords = set()
-    for i,l in enumerate(f):
-        for j,r in enumerate(l.rstrip()):
-            if r == '#':
-                coords.add((i,j))
-
-    # print('Initial:')
-    # paint(coords)
+def sim(coords, rnds):
     m = np.full((3,3), 0)
     diri = 0
     dirs = [[(-1,0), (-1,1), (-1,-1)], [(1,0), (1,-1), (1,1)], [(0,-1), (-1,-1), (1,-1)], [(0,1), (-1,1), (1,1)]]
     pos8 = [(0,1), (-1,1), (-1,0), (-1,-1), (0,-1), (1,-1), (1,0), (1,1)]
-    for rnd in range(1,11):
+    for rnd in range(1,rnds+1):
         propc_d = {} # x,y to nx,ny
         propn_d = defaultdict(int) # nx,ny -> count of elves who propose going there
         moves = 0
@@ -2270,7 +2262,6 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
         # if nobody proposes a move we are done
         if moves == 0:
-            print(f"rnd={rnd} nobody moved so done")
             break
         else:
             # migrate
@@ -2286,8 +2277,23 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
                     ncoords.add((x,y))
             coords = ncoords
             diri = (diri + 1) % 4
-            # print(f"After rnd={rnd} (moves={moves})")
-            # paint(coords)
 
     nempty = cnt_empty(coords)
+    return nempty, rnd
+
+def p1(coords):
+    nempty, _ = sim(coords, 10)
     print(f"solution = {nempty}")
+
+def p2(coords):
+    _, rnd = sim(coords, 1000)
+    print(f"solution = {rnd}")
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    coords = set()
+    for i,l in enumerate(f):
+        for j,r in enumerate(l.rstrip()):
+            if r == '#':
+                coords.add((i,j))
+    # p1(coords)
+    p2(coords)

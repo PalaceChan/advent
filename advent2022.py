@@ -1855,7 +1855,312 @@ def paint(m, v, fac):
             rstr = ''.join(lrstr)
         print(rstr)
 
-with open(f"{os.getcwd()}/input.txt", "r") as f:
+def p1(m, pos, fac, fac_d, fac_s):
+    nr, nc = m.shape
+    for ins in inst:
+        if isinstance(ins, str):
+            fac = fac_d[ins][fac]
+        else:
+            for i in range(ins):
+                x,y = pos
+                nx, ny = ((x + fac[0]) % nr, (y + fac[1]) % nc)
+                if m[nx,ny] == ' ':
+                    # advance until nx, ny are "valid"
+                    for _ in range(1000):
+                        nx, ny = ((nx + fac[0]) % nr, (ny + fac[1]) % nc)
+                        if m[nx,ny] != ' ':
+                            break
+                    else:
+                        assert False
+
+                # npos is either wall or valid
+                if m[nx,ny] == '#':
+                    break
+                else:
+                    assert m[nx,ny] == '.'
+                    pos = (nx,ny)
+
+    frow = 1+pos[0]
+    fcol = 1+pos[1]
+    ffac = fac_s[fac]
+    pwrd = 1000 * frow + 4 * fcol + ffac
+    print(f"solution = {pwrd}")
+
+def p2(m, pos, fac, fac_d, fac_s, is_test):
+    def get_test_wrap(side, fac, x, y, fnr, fnc):
+        if side == '1':
+            if fac == (0,1):
+                # back(1) facing right wraps to right(6) facing left, 'top' maps to 'bottom'
+                nfac = (0,-1)
+                nx, ny = 3*fnr - x - 1, 4*fnc - 1
+            elif fac == (0,-1):
+                # back(1) facing left wraps to left(3) facing down, v on 1 aligns with > on 3
+                nfac = (1,0)
+                nx, ny = 1*fnr, 1*fnc + x
+            elif fac == (1,0):
+                # back(1) going down would slide into top(4) before wrapping
+                assert False
+            elif fac == (-1,0):
+                # back(1) going up wraps to bottom(2) facing down, > on 1 aligns with < on 2
+                nfac = (1,0)
+                dy = y - 2*fnc
+                nx, ny = 1*fnr, 1*fnc - dy - 1
+        elif side == '2':
+            if fac == (0,1):
+                assert False
+                # bottom(2) going right slides into left(3) going right
+            elif fac == (0,-1):
+                # bottom(2) going left wraps to right(6) facing up, v on 2 aligns with < on 6
+                nfac = (-1, 0)
+                dx = x - 1*fnr
+                nx, ny = 3*fnr - 1, 4*fnc - dx - 1
+            elif fac == (1,0):
+                # bottom(2) going down wraps to front(5) facing up, > on 2 aligns with < on 5
+                nfac = (-1,0)
+                dy = y - 0*fnc
+                nx, ny = 3*fnr - 1, 3*fnc - dy - 1
+            elif fac == (-1,0):
+                # bottom(2) going up wraps to back(1) facing down, > on 2 aligns with < on 1
+                nfac = (1,0)
+                dy = y - 0*fnc
+                nx, ny = 0*fnr, 2*fnc + dy
+        elif side == '3':
+            if fac == (0,1):
+                # left(3) going right slides on top top(4) going right
+                assert False
+            elif fac == (0,-1):
+                # left(3) going left slides on bottom(2) going left
+                assert False
+            elif fac == (1,0):
+                # left(3) going down wraps to front(5) facing right, > on 3 aligns with ^ on 5
+                nfac = (0,1)
+                dy = y - 1*fnc
+                nx, ny = 3*fnr - dy - 1, 2*fnc
+            elif fac == (-1,0):
+                # left(3) going up wraps to back(1) facing right, > on 3 aligns with v on 1
+                nfac = (0,1)
+                dy = y - 1*fnc
+                nx, ny = 0*fnr + dy, 2*fnc
+        elif side == '4':
+            if fac == (0,1):
+                # top(4) going right wraps to right(6) facing down, v on 4 aligns with < on 6
+                nfac = (1,0)
+                dx = x - 1*fnr
+                nx, ny = 2*fnr, 4*fnc - dx - 1
+            elif fac == (0,-1):
+                # top(4) going left slides on left(3) going left
+                assert False
+            elif fac == (1,0):
+                # top(4) going down slides on front(5) going down
+                assert False
+            elif fac == (-1,0):
+                # top(4) going up slides on back(1) going up
+                assert False
+        elif side == '5':
+            if fac == (0,1):
+                # front(5) going right slides on right(6) going right
+                assert False
+            elif fac == (0,-1):
+                # left(5) going left wraps to left(3) facing up, v on 5 aligns with < on 3
+                nfac = (-1,0)
+                dx = x - 2*fnr
+                nx, ny = 2*fnr - 1, 2*fnc - dx - 1
+            elif fac == (1,0):
+                # left(5) going down wraps to bottom(2) facing up, > on 5 aligns with < on 2
+                nfac = (-1,0)
+                dy = y - 2*fnc
+                nx, ny = 2*fnr - 1, 1*fnc - dy - 1
+            elif fac == (-1,0):
+                # left(5) going up slides on top(4) going up
+                assert False
+        elif side == '6':
+            if fac == (0,1):
+                # right(6) going right wraps to back(1) facing left, v on 6 aligns with ^ on 1
+                nfac = (0,-1)
+                dx = x - 2*fnr
+                nx, ny = 1*fnr - dx - 1, 3*fnc - 1
+            elif fac == (0,-1):
+                # right(6) going left slides on front(5) going left
+                assert False
+            elif fac == (1,0):
+                # right(6) going down wraps to bottom(2) facing right, > on 6 aligns with ^ on 2
+                nfac = (0,1)
+                dy = y - 3*fnc
+                nx, ny = 2*fnr - dy - 1, 0*fnc
+            elif fac == (-1,0):
+                # right(6) going up wraps to top(4) facing left, > on 6 aligns with ^ on 4
+                nfac = (0,-1)
+                dy = y - 3*fnc
+                nx, ny = 2*fnr - dy - 1, 3*fnc - 1
+        else:
+            import pdb; pdb.set_trace()
+            assert False
+        return nfac, nx, ny
+
+    def get_input_wrap(side, fac, x, y, fnr, fnc):
+        if side == '1':
+            if fac == (0,1):
+                # back(1) facing right wraps to right(6) facing up, v on 1 aligns with > on 6
+                nfac = (-1,0)
+                dx = x - 1*fnr
+                nx, ny = 1*fnr - 1, 2*fnc + dx
+            elif fac == (0,-1):
+                # back(1) facing left wraps to left(3) facing down, v on 1 aligns with > on 3
+                nfac = (1,0)
+                dx = x - 1*fnr
+                nx, ny = 2*fnr, 0*fnc + dx
+            elif fac == (1,0):
+                # back(1) going down would slide into top(4) before wrapping
+                assert False
+            elif fac == (-1,0):
+                # back(1) going up would slide into bottom(2) going up
+                assert False
+        elif side == '2':
+            if fac == (0,1):
+                # bottom(2) going right slides into right(6) going right
+                assert False
+            elif fac == (0,-1):
+                # bottom(2) going left wraps to left(3) facing right, v on 2 aligns with ^ on 3
+                nfac = (0, 1)
+                dx = x - 0*fnr
+                nx, ny = 3*fnr - dx - 1, 0*fnc
+            elif fac == (1,0):
+                # bottom(2) going down slides onto back(1) going down
+                assert False
+            elif fac == (-1,0):
+                # bottom(2) going up wraps to front(5) facing right, > on 2 aligns with v on 5
+                nfac = (0,1)
+                dy = y - 1*fnc
+                nx, ny = 3*fnr + dy, 0*fnc
+        elif side == '3':
+            if fac == (0,1):
+                # left(3) going right slides on top top(4) going right
+                assert False
+            elif fac == (0,-1):
+                # left(3) going left wraps to bottom(2) facing right, v on 3 aligns with ^ on 2
+                nfac = (0,1)
+                dx = x - 2*fnr
+                nx, ny = 1*fnr - dx - 1, 1*fnc
+            elif fac == (1,0):
+                # left(3) going down slides onto front(5) going down
+                assert False
+            elif fac == (-1,0):
+                # left(3) going up wraps to back(1) facing right, > on 3 aligns with v on 1
+                nfac = (0,1)
+                dy = y - 0*fnc
+                nx, ny = 1*fnr + dy, 1*fnc
+        elif side == '4':
+            if fac == (0,1):
+                # top(4) going right wraps to right(6) facing left, v on 4 aligns with ^ on 6
+                nfac = (0,-1)
+                dx = x - 2*fnr
+                nx, ny = 1*fnr - dx - 1, 3*fnc - 1
+            elif fac == (0,-1):
+                # top(4) going left slides on left(3) going left
+                assert False
+            elif fac == (1,0):
+                # top(4) going down wraps to front(5) facing left, > on 4 aligns with v on 5
+                nfac = (0,-1)
+                dy = y - 1*fnc
+                nx, ny = 3*fnr + dy, 1*fnc - 1
+            elif fac == (-1,0):
+                # top(4) going up slides on back(1) going up
+                assert False
+        elif side == '5':
+            if fac == (0,1):
+                # front(5) going right wraps to top(4) facing up, v on 5 aligns with > on 4
+                nfac = (-1,0)
+                dx = x - 3*fnr
+                nx, ny = 3*fnr - 1, 1*fnc + dx
+            elif fac == (0,-1):
+                # front(5) going left wraps to bottom(2) facing down, v on 5 aligns with > on 2
+                nfac = (1,0)
+                dx = x - 3*fnr
+                nx, ny = 0*fnr, 1*fnc + dx
+            elif fac == (1,0):
+                # front(5) going down wraps to right(6) facing down, > on 5 aligns with > on 6
+                nfac = (1,0)
+                dy = y - 0*fnc
+                nx, ny = 0*fnr, 2*fnc + dy
+            elif fac == (-1,0):
+                # left(5) going up slides on left(3) going up
+                assert False
+        elif side == '6':
+            if fac == (0,1):
+                # right(6) going right wraps to top(4) facing left, v on 6 aligns with ^ on 4
+                nfac = (0,-1)
+                dx = x - 0*fnr
+                nx, ny = 3*fnr - dx - 1, 2*fnc - 1
+            elif fac == (0,-1):
+                # right(6) going left slides on bottom(2) going left
+                assert False
+            elif fac == (1,0):
+                # right(6) going down wraps to back(1) facing left, > on 6 aligns with v on 1
+                nfac = (0,-1)
+                dy = y - 2*fnc
+                nx, ny = 1*fnr + dy, 2*fnc - 1
+            elif fac == (-1,0):
+                # right(6) going up wraps to front(5) facing up, > on 6 aligns with > on 5
+                nfac = (-1,0)
+                dy = y - 2*fnc
+                nx, ny = 4*fnr - 1, 0*fnc + dy
+        else:
+            import pdb; pdb.set_trace()
+            assert False
+        return nfac, nx, ny
+
+    nr, nc = m.shape
+    m2 = np.full_like(m, ' ')
+    if is_test:
+        fnr, fnc = nr // 3, nc // 4
+        m2[(0*fnr):(1*fnr),(2*fnc):(3*fnc)] = '1', # back
+        m2[(1*fnr):(2*fnr),(0*fnc):(1*fnc)] = '2', # bottom
+        m2[(1*fnr):(2*fnr),(1*fnc):(2*fnc)] = '3', # left
+        m2[(1*fnr):(2*fnr),(2*fnc):(3*fnc)] = '4', # top
+        m2[(2*fnr):(3*fnr),(2*fnc):(3*fnc)] = '5', # front
+        m2[(2*fnr):(3*fnr),(3*fnc):(4*fnc)] = '6', # right
+    else:
+        fnr, fnc = nr // 4, nc // 3
+        m2[(1*fnr):(2*fnr),(1*fnc):(2*fnc)] = '1', # back
+        m2[(0*fnr):(1*fnr),(1*fnc):(2*fnc)] = '2', # bottom
+        m2[(2*fnr):(3*fnr),(0*fnc):(1*fnc)] = '3', # left
+        m2[(2*fnr):(3*fnr),(1*fnc):(2*fnc)] = '4', # top
+        m2[(3*fnr):(4*fnr),(0*fnc):(1*fnc)] = '5', # front
+        m2[(0*fnr):(1*fnr),(2*fnc):(3*fnc)] = '6', # right
+
+    for ins in inst:
+        if isinstance(ins, str):
+            fac = fac_d[ins][fac]
+        else:
+            for i in range(ins):
+                x,y = pos
+                nfac = fac
+                nx, ny = (x + fac[0], y + fac[1])
+                is_oob = (nx < 0 or ny < 0 or nx == nr or ny == nc)
+                if is_oob or m[nx,ny] == ' ':
+                    # warp to the correct position and orientation
+                    side = m2[x,y]
+                    if is_test:
+                        nfac, nx, ny = get_test_wrap(side, fac, x, y, fnr, fnc)
+                    else:
+                        nfac, nx, ny = get_input_wrap(side, fac, x, y, fnr, fnc)
+
+                # npos is either wall or valid
+                if m[nx,ny] == '#':
+                    break
+                else:
+                    assert m[nx,ny] == '.'
+                    pos = (nx,ny)
+                    fac = nfac
+
+    frow = 1+pos[0]
+    fcol = 1+pos[1]
+    ffac = fac_s[fac]
+    pwrd = 1000 * frow + 4 * fcol + ffac
+    print(f"solution = {pwrd}")
+
+fname = 'input'
+with open(f"{os.getcwd()}/{fname}.txt", "r") as f:
     rows = []
     mlen = 0
     inss = None
@@ -1887,33 +2192,5 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
         'L': {(0,1): (-1,0), (-1,0): (0,-1), (0,-1): (1,0),   (1,0): (0,1)},
     }
     fac_s = {(0,1): 0, (1,0): 1, (0,-1): 2, (-1,0): 3}
-    nr, nc = m.shape
-    dbg = 0
-    for ins in inst:
-        if isinstance(ins, str):
-            fac = fac_d[ins][fac]
-        else:
-            for i in range(ins):
-                x,y = pos
-                nx, ny = ((x + fac[0]) % nr, (y + fac[1]) % nc)
-                if m[nx,ny] == ' ':
-                    # advance until nx, ny are "valid"
-                    for _ in range(1000):
-                        nx, ny = ((nx + fac[0]) % nr, (ny + fac[1]) % nc)
-                        if m[nx,ny] != ' ':
-                            break
-                    else:
-                        assert False
-
-                # npos is either wall or valid
-                if m[nx,ny] == '#':
-                    break
-                else:
-                    assert m[nx,ny] == '.'
-                    pos = (nx,ny)
-
-    frow = 1+pos[0]
-    fcol = 1+pos[1]
-    ffac = fac_s[fac]
-    pwrd = 1000 * frow + 4 * fcol + ffac
-    print(f"solution = {pwrd}")
+    # p1(m, pos, fac, fac_d, fac_s)
+    p2(m, pos, fac, fac_d, fac_s, (fname == 'test'))

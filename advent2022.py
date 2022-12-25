@@ -2297,3 +2297,140 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
                 coords.add((i,j))
     # p1(coords)
     p2(coords)
+
+## Problem 24
+import os
+import numpy as np
+
+def paint(ri, li, ui, di, oi, pos=None):
+    nr,nc = ri.shape
+    for i in range(nr):
+        rstr = ['.'] * nc
+        for j in range(nc):
+            num = ri[i,j] + li[i,j] + ui[i,j] + di[i,j]
+            if oi[i,j] == 1:
+                rstr[j] = '#'
+            elif num > 1:
+                rstr[j] = str(num)
+            elif ri[i,j] == 1:
+                rstr[j] = '>'
+            elif li[i,j] == 1:
+                rstr[j] = '<'
+            elif ui[i,j] == 1:
+                rstr[j] = '^'
+            elif di[i,j] == 1:
+                rstr[j] = 'v'
+            if pos is not None:
+                x,y = pos
+                if i == x and j == y:
+                    assert rstr[j] == '.'
+                    rstr[j] = 'E'
+        print(''.join(rstr))
+    print()
+
+def fill_oi(m, i, j, c):
+    nr,nc = m.shape
+    if i == 0:
+        m[i,j] = 0 if j == 1 else 1
+    elif i == (nr-1):
+        m[i,j] = 0 if j == (nc-2) else 1
+    else:
+        m[i,j] = 1 if (j == 0 or j == (nc-1)) else 0
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    rows = f.read().rstrip().split("\n")
+    nr, nc = len(rows), len(rows[0])
+    m = np.full((nr, nc), 0)
+    ri = np.full((nr, nc), 0)
+    li = np.full((nr, nc), 0)
+    ui = np.full((nr, nc), 0)
+    di = np.full((nr, nc), 0)
+    oi = np.full((nr, nc), 0)
+    for i, row in enumerate(rows):
+        for j, c in enumerate(row):
+            fill_oi(oi, i, j, c)
+            if c == '>':
+                ri[i,j] = 1
+            elif c == '<':
+                li[i,j] = 1
+            elif c == '^':
+                ui[i,j] = 1
+            elif c == 'v':
+                di[i,j] = 1
+    # paint(ri, li, ui, di, oi, (0,1))
+    m = ri + li + ui + di + oi
+    states = [(ri,li,ui,di,m)]
+
+    # pre-compute some future states
+    for s in range(1,900):
+        pri = states[s-1][0]
+        pli = states[s-1][1]
+        pui = states[s-1][2]
+        pdi = states[s-1][3]
+        nri = pri.copy()
+        nli = pli.copy()
+        nui = pui.copy()
+        ndi = pdi.copy()
+        for i in range(nc-2):
+            j = (i-1)%(nc-2)
+            nri[:,(i+1)] = pri[:,(j+1)]
+
+        for i in range(nc-2):
+            j = (i+1)%(nc-2)
+            nli[:,(i+1)] = pli[:,(j+1)]
+
+        for i in range(nr-2):
+            j = (i-1)%(nr-2)
+            ndi[(i+1),:] = pdi[(j+1),:]
+
+        for i in range(nr-2):
+            j = (i+1)%(nr-2)
+            nui[(i+1),:] = pui[(j+1),:]
+
+        nm = nri + nli + nui + ndi + oi
+        states.append((nri, nli, nui, ndi, nm))
+        # print(f'minute {s}:')
+        # paint(states[-1][0], states[-1][1], states[-1][2], states[-1][3], oi)
+
+    mins = 3000
+    memo = set()
+    dirs = [np.array((0,0)), np.array((0,1)), np.array((1,0)), np.array((0,-1)), np.array((-1,0))]
+    def solve(depth, pos, end):
+        key = (depth, pos[0], pos[1])
+        if key in memo:
+            return
+        memo.add(key)
+
+        global mins
+        if (pos == end).all():
+            print(f"found a solution in {depth} steps")
+            mins = min(mins, depth)
+            return
+
+        # check if there is a better solution
+        if depth > mins:
+            return
+
+        # check if at depth limit
+        if depth >= len(states):
+            return
+
+        # check if dead
+        m = states[depth][4]
+        x, y = pos
+        if m[x,y] > 0:
+            return
+
+        # print(f"alive at depth {depth}:")
+        # paint(states[depth][0], states[depth][1], states[depth][2], states[depth][3], oi, pos)
+
+        for d in dirs:
+            npos = pos + d
+            nx, ny = npos
+            x_ib = nx >= 1 and nx <= nr-1
+            y_ib = ny >= 1 and ny <= nc-2
+            if x_ib and y_ib:
+                solve(depth=depth+1, pos=npos, end=end)
+
+    solve(depth=0, pos=np.array((0,1)), end=np.array((nr-1, nc-2)))
+    print(f"ans={mins}")

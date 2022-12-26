@@ -2337,6 +2337,75 @@ def fill_oi(m, i, j, c):
     else:
         m[i,j] = 1 if (j == 0 or j == (nc-1)) else 0
 
+memo = set()
+mins = 3000
+
+def solve(depth, offset, nwait, pos, end):
+    key = (depth, pos[0], pos[1])
+    if key in memo:
+        return
+    memo.add(key)
+
+    global mins
+    if (pos == end).all():
+        mins = min(mins, depth)
+        return
+
+    # check if there is a better solution
+    if depth > mins:
+        return
+
+    # avoid wait limit
+    if nwait > 100:
+        return
+
+    # avoid recursion limit
+    if depth > 900:
+        return
+
+    # check if at state limit
+    if depth + offset >= len(states):
+        assert False
+
+    # check if dead
+    s = states[depth+offset]
+    m = s[4]
+    x, y = pos
+    if m[x,y] > 0:
+        return
+
+    for d in dirs:
+        npos = pos + d
+        nx, ny = npos
+        x_ib = nx >= 0 and nx <= nr-1
+        y_ib = ny >= 1 and ny <= nc-2
+        if x_ib and y_ib:
+            waits = ((x,y) == (nx,ny))
+            solve(depth=depth+1, offset=offset, nwait=nwait+waits, pos=npos, end=end)
+
+def p1():
+    global mins
+
+    mins = 3000
+    solve(depth=0, offset=0, nwait=0, pos=np.array((0,1)), end=np.array((nr-1, nc-2)))
+    print(f"ans={mins}")
+
+def p2():
+    global mins
+    global memo
+
+    tots = []
+    mins, noff, memo = 3000, 0, set()
+    solve(depth=0, offset=noff, nwait=0, pos=np.array((0,1)), end=np.array((nr-1, nc-2)))
+    tots.append(mins)
+    mins, noff, memo = 3000, sum(tots), set()
+    solve(depth=0, offset=noff, nwait=0, pos=np.array((nr-1, nc-2)), end=np.array((0,1)))
+    tots.append(mins)
+    mins, noff, memo = 3000, sum(tots), set()
+    solve(depth=0, offset=noff, nwait=0, pos=np.array((0,1)), end=np.array((nr-1, nc-2)))
+    tots.append(mins)
+    print(f"ans={sum(tots)} (tots{tots})")
+
 with open(f"{os.getcwd()}/input.txt", "r") as f:
     rows = f.read().rstrip().split("\n")
     nr, nc = len(rows), len(rows[0])
@@ -2357,12 +2426,11 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
                 ui[i,j] = 1
             elif c == 'v':
                 di[i,j] = 1
-    # paint(ri, li, ui, di, oi, (0,1))
     m = ri + li + ui + di + oi
     states = [(ri,li,ui,di,m)]
 
     # pre-compute some future states
-    for s in range(1,900):
+    for s in range(1,2000):
         pri = states[s-1][0]
         pli = states[s-1][1]
         pui = states[s-1][2]
@@ -2389,48 +2457,6 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
 
         nm = nri + nli + nui + ndi + oi
         states.append((nri, nli, nui, ndi, nm))
-        # print(f'minute {s}:')
-        # paint(states[-1][0], states[-1][1], states[-1][2], states[-1][3], oi)
-
-    mins = 3000
-    memo = set()
     dirs = [np.array((0,0)), np.array((0,1)), np.array((1,0)), np.array((0,-1)), np.array((-1,0))]
-    def solve(depth, pos, end):
-        key = (depth, pos[0], pos[1])
-        if key in memo:
-            return
-        memo.add(key)
-
-        global mins
-        if (pos == end).all():
-            print(f"found a solution in {depth} steps")
-            mins = min(mins, depth)
-            return
-
-        # check if there is a better solution
-        if depth > mins:
-            return
-
-        # check if at depth limit
-        if depth >= len(states):
-            return
-
-        # check if dead
-        m = states[depth][4]
-        x, y = pos
-        if m[x,y] > 0:
-            return
-
-        # print(f"alive at depth {depth}:")
-        # paint(states[depth][0], states[depth][1], states[depth][2], states[depth][3], oi, pos)
-
-        for d in dirs:
-            npos = pos + d
-            nx, ny = npos
-            x_ib = nx >= 1 and nx <= nr-1
-            y_ib = ny >= 1 and ny <= nc-2
-            if x_ib and y_ib:
-                solve(depth=depth+1, pos=npos, end=end)
-
-    solve(depth=0, pos=np.array((0,1)), end=np.array((nr-1, nc-2)))
-    print(f"ans={mins}")
+    # p1()
+    p2()

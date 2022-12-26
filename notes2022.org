@@ -1,0 +1,181 @@
+* 2022
+** p 17
+there is never a point where ridx and jidx are both zero other than the start
+
+while ridx 0 and jidx 0 never repeat, a few other combinations do repeat for example ridx 0 and jidx 2, if we pause at those moments
+the step increment is constant (35) and the height increment is constant (53) say i want 2022, then the first repeat that "works" is ridx 2 and jidx 23 because s is 62 and 2022 - 62 mod gain of 35 is 0
+so we know from that how many mults to get to 2022 (56) i.e. 62 + 56*35 and the hgt at 62 is 100 so the answer at 2022 will be 100 + 56*53
+** p19
+full day and early chunk of next
+** p20
+took most of a day
+
+a botched attempt with swapping
+#+begin_src python
+  import os
+  import pprint
+  import numpy as np
+
+  class Node:
+      def __init__(self, val):
+          self.val = int(val)
+          self.left = None
+          self.right = None
+
+      def __repr__(self):
+          lstr = "x" if self.left is None else f"[{self.left.val}]"
+          rstr = "x" if self.right is None else f"[{self.right.val}]"
+          return f"{lstr} <- [{self.val}] -> {rstr}"
+
+  def get_dst(idx, val, N):
+      if val == 0:
+          dst = idx
+      elif val > 0:
+          if idx + val < N:
+              dst = idx + val
+          elif idx > 0:
+              nidx = idx - 1
+              dst = (nidx + val) % (N - 1)
+              dst = dst + 1
+          else:
+              nidx = 1
+              nval = val - 1
+              dst = (idx + nval) % (N - 1)
+              dst = dst + 1
+      else: # val < 0
+          if idx + val >= 0:
+              dst = idx + val
+          elif idx < (N-1):
+              nidx = (N-1) - idx - 1
+              dst = (nidx - val) % (N - 1)
+              dst = dst + 1
+              dst = (N-1) - dst
+          else:
+              nidx = (N-1) - 1
+              nval = val + 1
+              nidx = (N-1) - nidx - 1
+              dst = (nidx - nval) % (N - 1)
+              dst = dst + 1
+              dst = (N-1) - dst
+      return dst
+
+  with open(f"{os.getcwd()}/test.txt", "r") as f:
+      l = f.read()
+      vl = [int(v) for v in l.rstrip().split('\n')]
+      il = list(range(len(vl)))
+      N = len(vl)
+      # pprint.pp(nodes)
+
+      print(f"{vl}")
+      print(f"{il}\n")
+      for n in range(len(il)):
+          idx = il[n]
+          val = vl[idx]
+          dst = get_dst(idx, val, N)
+          stp = dst - idx
+          print(f"{val} moving from {idx} to {dst} in {stp} steps")
+          for _ in range(abs(stp)):
+              nidx = (idx + np.sign(stp)) % N
+              vl[idx], vl[nidx] = vl[nidx], vl[idx]
+              il[idx], il[nidx] = il[nidx], il[idx]
+              print(f"swapped indices {(idx,nidx)}")
+              print(f"{vl}")
+              print(f"{il}\n")
+              idx = nidx
+          print(f"{val} moved:")
+          print(f"{vl}")
+          print(f"{il}\n")
+#+end_src
+** p21
+:LOGBOOK:
+CLOCK: [2022-12-24 Sat 09:22]--[2022-12-24 Sat 11:03] =>  1:41
+#+BEGIN: clocktable :scope subtree :maxlevel 2
+#+CAPTION: Clock summary at [2022-12-24 Sat 11:03]
+| Headline   | Time |
+|------------+------|
+| *Total time* | *2:07* |
+|------------+------|
+| p21        | 2:07 |
+#+END:
+
+CLOCK: [2022-12-23 Fri 22:38]--[2022-12-23 Fri 23:04] =>  0:26
+:END:
+started: [2022-12-23 Fri 22:36]
+completed: [2022-12-24 Sat 11:03]
+
+this one was not too hard but mostly because used sympy to solve the extracted equation
+** p22
+:LOGBOOK:
+CLOCK: [2022-12-25 Sun 10:27]--[2022-12-25 Sun 12:13] =>  1:46
+#+BEGIN: clocktable :scope subtree :maxlevel 2
+#+CAPTION: Clock summary at [2022-12-25 Sun 12:13]
+| Headline   | Time |
+|------------+------|
+| *Total time* | *5:44* |
+|------------+------|
+| p22        | 5:44 |
+#+END:
+
+CLOCK: [2022-12-24 Sat 15:16]--[2022-12-24 Sat 16:13] =>  0:57
+CLOCK: [2022-12-24 Sat 12:15]--[2022-12-24 Sat 14:57] =>  2:42
+CLOCK: [2022-12-24 Sat 11:12]--[2022-12-24 Sat 11:31] =>  0:19
+:END:
+started: [2022-12-24 Sat 11:10]
+completed: [2022-12-25 Sun 12:13]
+very painful nasty case work with folded cube
+** p23
+:LOGBOOK:
+CLOCK: [2022-12-25 Sun 14:12]--[2022-12-25 Sun 14:26] =>  0:14
+#+BEGIN: clocktable :scope subtree :maxlevel 2
+#+CAPTION: Clock summary at [2022-12-25 Sun 14:26]
+| Headline   | Time |
+|------------+------|
+| *Total time* | *1:20* |
+|------------+------|
+| p23        | 1:20 |
+#+END:
+
+CLOCK: [2022-12-25 Sun 13:28]--[2022-12-25 Sun 14:08] =>  0:40
+CLOCK: [2022-12-25 Sun 13:01]--[2022-12-25 Sun 13:07] =>  0:06
+CLOCK: [2022-12-25 Sun 12:31]--[2022-12-25 Sun 12:51] =>  0:20
+:END:
+started: [2022-12-25 Sun 12:31]
+completed: [2022-12-25 Sun 14:26]
+
+surprisingly an easy one
+** p24
+:LOGBOOK:
+CLOCK: [2022-12-25 Sun 17:40]--[2022-12-25 Sun 18:13] =>  0:33
+#+BEGIN: clocktable :scope subtree :maxlevel 2
+#+CAPTION: Clock summary at [2022-12-25 Sun 18:13]
+| Headline   | Time |
+|------------+------|
+| *Total time* | *3:02* |
+|------------+------|
+| p24        | 3:02 |
+#+END:
+
+CLOCK: [2022-12-25 Sun 15:33]--[2022-12-25 Sun 17:15] =>  1:42
+CLOCK: [2022-12-25 Sun 14:40]--[2022-12-25 Sun 15:27] =>  0:47
+:END:
+started: [2022-12-25 Sun 14:40]
+completed: [2022-12-25 Sun 18:13]
+was a bit of a pain to get the setup but luckily did not get crazy complicated once it was set up
+** p25
+:LOGBOOK:
+CLOCK: [2022-12-25 Sun 20:30]--[2022-12-25 Sun 21:38] =>  1:08
+#+BEGIN: clocktable :scope subtree :maxlevel 2
+#+CAPTION: Clock summary at [2022-12-25 Sun 21:38]
+| Headline   | Time |
+|------------+------|
+| *Total time* | *2:00* |
+|------------+------|
+| p25        | 2:00 |
+#+END:
+
+CLOCK: [2022-12-25 Sun 18:26]--[2022-12-25 Sun 19:18] =>  0:52
+:END:
+started: [2022-12-25 Sun 18:26]
+completed: [2022-12-25 Sun 21:38]
+
+not bad

@@ -2460,3 +2460,74 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
     dirs = [np.array((0,0)), np.array((0,1)), np.array((1,0)), np.array((0,-1)), np.array((-1,0))]
     # p1()
     p2()
+
+## Problem 25
+import os
+import math
+import numpy as np
+
+dec_d = {'=':-2, '-':-1, '0':0, '1':1, '2':2}
+sfu_d = {v:k for k,v in dec_d.items()}
+
+def tail_sum(i):
+    return (5**(i+1) - 1) // 4
+
+def to_dec(sfu):
+    sr = reversed(sfu)
+    tot = 0
+    for i, c in enumerate(sr):
+        p = 5**i
+        v = dec_d[c]
+        tot += p*v
+    return tot
+
+def to_sfu(lft, moves):
+    if lft == 0:
+        if len(moves) == 0:
+            return [sfu_d[0]]
+        k, p = moves[0]
+        sfu = [sfu_d[k]]
+        i = 1
+        for _ in range(1000):
+            if i == len(moves):
+                break
+            nk, np = moves[i]
+            if p - np > 1:
+                sfu.append(sfu_d[0])
+                p -= 1
+            else:
+                sfu.append(sfu_d[nk])
+                p = np
+                i += 1
+        else:
+            assert False
+        for _ in range(p):
+            sfu.append(sfu_d[0])
+        return ''.join(sfu)
+
+    # find powers of 5 p, s.t lft - k * 5^p <= 2*tail_sum(p-1) for k in -2,-1,1,2
+    for p in range(100):
+        for k in [-2, -1, 1, 2]:
+            res = lft - k * 5**p
+            if abs(res) <= 2*tail_sum(p-1):
+                nmoves = moves.copy()
+                nmoves.append((k, p))
+                return to_sfu(res, nmoves)
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    snafus = []
+    for l in f:
+        snafus.append(list(l.rstrip()))
+
+    tots = []
+    for s in snafus:
+        sr = reversed(s)
+        tot = 0
+        for i, c in enumerate(sr):
+            p = 5**i
+            v = dec_d[c]
+            tot += p*v
+        tots.append(tot)
+
+    stot = sum(tots)
+    print(to_sfu(stot, []))

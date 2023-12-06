@@ -111,3 +111,25 @@ for x,y,_ in stars:
             gr *= int(num[-1])
         lis.append(gr)
 print(sum(lis))
+
+## Problem 4
+import os
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    points = []
+    matches = []
+    for l in f:
+        l = l.strip()
+        win, haz = re.search(r"Card\s+[0-9]+: ([^|]+) \| (.*)",l).groups()
+        win = set(win.split())
+        haz = set(haz.split())
+        com = haz & win
+        value = 2**(len(com)-1) if len(com) > 0 else 0
+        points.append(value)
+        matches.append(len(com))
+    print(f"part I: {sum(points)}")
+    cards = [1] * len(matches)
+    for i, p in enumerate(matches):
+        for j in range(p):
+            cards[i+j+1] += cards[i]
+    print(f"part II: {sum(cards)}")

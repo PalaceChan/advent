@@ -133,3 +133,125 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
         for j in range(p):
             cards[i+j+1] += cards[i]
     print(f"part II: {sum(cards)}")
+
+## Problem 5
+import os
+import re
+import math
+
+def get_val_from_maps(k, maps):
+    for m in maps:
+        drs, srs, rl = m
+        if k >= srs and k < srs+rl:
+            off = srs - drs
+            res = k - off
+            return res
+    return k
+
+def get_final_val(v):
+    v = get_val_from_maps(v, seed2soil)
+    v = get_val_from_maps(v, soil2fertilizer)
+    v = get_val_from_maps(v, fertilizer2water)
+    v = get_val_from_maps(v, water2light)
+    v = get_val_from_maps(v, light2temperature)
+    v = get_val_from_maps(v, temperature2humidity)
+    v = get_val_from_maps(v, humidity2location)
+    return v
+
+def get_ivals_from_ival_and_maps(ival, maps):
+    res = []
+    leftl = []
+    pending = [ival]
+    while pending:
+        leftl = pending
+        pending = []
+        for left in leftl:
+            for m in maps:
+                drs, srs, rl = m
+                off = srs - drs
+                a, b = left
+                # ival falls to left of srs (b < srs) -> continue
+                if b < srs:
+                    continue
+                # ival falls to right of srs+rl-1 (a >= srs+rl) -> continue
+                elif a > srs+rl-1:
+                    continue
+                # ival is sub-ival of [srs, srs+rl-1] -> fully remap
+                elif a >= srs and b <= srs+rl-1:
+                    res.append((a - off, b - off))
+                    break
+                # m chops ival to the left -> two new ivals
+                elif srs <= a and (srs+rl-1) < b:
+                    res.append((a - off, srs+rl-1-off))
+                    pending.append((srs+rl, b))
+                    break
+                # m chops ival to the right -> two new ivals
+                elif srs > a and (srs+rl-1) >= b:
+                    res.append((srs - off, b - off))
+                    pending.append((a, srs-1))
+                    break
+                # m is strict sub-ival of ival -> three new ivals
+                elif a < srs and (srs+rl-1) < b:
+                    res.append((srs-off, srs+rl-1-off))
+                    pending.extend([(a, srs-1), (srs+rl, b)])
+                    break
+                else:
+                    assert(False)
+            else:
+                res.append(left)
+    return res
+
+def get_ivals_from_ivals_and_maps(ivals, maps):
+    res = []
+    for ival in ivals:
+        nvals = get_ivals_from_ival_and_maps(ival, maps)
+        res.extend(nvals)
+    return res
+
+def get_final_ivals(ivals):
+    ivals = get_ivals_from_ivals_and_maps(ivals, seed2soil)
+    ivals = get_ivals_from_ivals_and_maps(ivals, soil2fertilizer)
+    ivals = get_ivals_from_ivals_and_maps(ivals, fertilizer2water)
+    ivals = get_ivals_from_ivals_and_maps(ivals, water2light)
+    ivals = get_ivals_from_ivals_and_maps(ivals, light2temperature)
+    ivals = get_ivals_from_ivals_and_maps(ivals, temperature2humidity)
+    ivals = get_ivals_from_ivals_and_maps(ivals, humidity2location)
+    return ivals
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    seeds = None
+    seed2soil = []
+    soil2fertilizer = []
+    fertilizer2water = []
+    water2light = []
+    light2temperature = []
+    temperature2humidity = []
+    humidity2location = []
+    for l in f:
+        l = l.strip()
+        if m := re.search(r"seeds: (.*)", l):
+            seeds = [int(v) for v in m.groups()[0].split()]
+        elif m := re.search(r"([a-z]+)-to-([a-z]+) map:", l):
+            a,b = m.groups()
+            lis = eval(f"{a}2{b}")
+        elif m := re.search(r"([0-9]+) ([0-9]+) ([0-9]+)", l):
+            drs, srs, rl = m.groups()
+            lis.append((int(drs), int(srs), int(rl)))
+        else:
+            assert len(l) == 0
+
+# part i
+min_locs = math.inf
+for v in seeds:
+    v = get_final_val(v)
+    min_locs = min(v, min_locs)
+print(f"part i: {min_locs}")
+
+# part ii
+ivals = []
+for i in range(0, len(seeds), 2):
+    a, b = seeds[i:i+2]
+    ivals.append((a, a+b-1))
+fivals = get_final_ivals(ivals)
+min_locs = min([a for a,_ in fivals])
+print(f"part i: {min_locs}")

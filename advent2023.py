@@ -379,3 +379,54 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
     for i, h in enumerate(sorted(hands)):
         res.append((h.bid, i+1))
     print(f"part {part}: {sum([a*b for a,b in res])}")
+
+## Problem 8
+import os
+import re
+import math
+import itertools as it
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    l = f.readlines()
+    ins = list(l[0].strip())
+    dic = {}
+    for i in range(2, len(l)):
+        k, lv, rv = re.match("(\w+) = \((\w+), (\w+)\)", l[i]).groups()
+        dic[k] = (lv, rv)
+
+    pos = 'AAA'
+    cyc = it.cycle(ins)
+    for i,d in enumerate(cyc):
+        if i > 100000:
+            assert False
+        lv, rv = dic[pos]
+        pos = rv if d == "R" else lv
+        if pos == 'ZZZ':
+            break
+    print(f"part 1: {i+1}")
+
+    slis = [k for k in dic.keys() if k.endswith("A")]
+    wlis = [[] for i in range(len(slis))]
+    for s, w in zip(slis, wlis):
+        print(f"exploring {s}")
+        pos = s
+        cyc = it.cycle(ins)
+        for j,d in enumerate(cyc):
+            lv, rv = dic[pos]
+            pos = rv if d == 'R' else lv
+            if pos.endswith('Z'):
+                w.append(j+1)
+                if len(w) > 2:
+                    break
+    difs = []
+    for w in wlis:
+        ds = set([w[i+1] - w[i] for i in range(len(w)-1)])
+        assert len(ds) == 1
+        difs.append(next(iter(ds)))
+
+    def lcm_of_list(nums):
+        lcm = nums[0]
+        for num in nums[1:]:
+            lcm = (lcm * num) // math.gcd(lcm, num)
+        return lcm
+    print(f"part 2: {lcm_of_list(difs)}")

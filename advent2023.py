@@ -255,3 +255,29 @@ for i in range(0, len(seeds), 2):
 fivals = get_final_ivals(ivals)
 min_locs = min([a for a,_ in fivals])
 print(f"part i: {min_locs}")
+
+## Problem 6
+import os
+import math
+
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    lis = f.readlines()
+    tlis = [int(x) for x in lis[0].replace("Time:", "").split()]
+    dlis = [int(x) for x in lis[1].replace("Distance:", "").split()]
+    # -x^2 + tx - d > 0, sols (-t ± sqrt(t^2 - 4d)) / (-2)
+    ways = []
+    for t, d in zip(tlis, dlis):
+        lr = (-t + math.sqrt(t**2 - 4*d)) / (-2)
+        rr = (-t - math.sqrt(t**2 - 4*d)) / (-2)
+        lr = math.ceil(lr + 1e-12)
+        rr = math.floor(rr - 1e-12)
+        ways.append(rr - lr + 1)
+    print(f"part i {math.prod(ways)}")
+
+    t = int(''.join([str(x) for x in tlis]))
+    d = int(''.join([str(x) for x in dlis]))
+    lr = (-t + math.sqrt(t**2 - 4*d)) / (-2)
+    rr = (-t - math.sqrt(t**2 - 4*d)) / (-2)
+    lr = math.ceil(lr + 1e-12)
+    rr = math.floor(rr - 1e-12)
+    print(f"part ii {rr - lr + 1}")

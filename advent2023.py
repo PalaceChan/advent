@@ -281,3 +281,101 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
     lr = math.ceil(lr + 1e-12)
     rr = math.floor(rr - 1e-12)
     print(f"part ii {rr - lr + 1}")
+
+## Problem 7
+import os
+from enum import Enum
+from collections import Counter
+
+class SortedEnum:
+    def __lt__(self, other):
+        return self._value_ > other._value_
+
+class HandType(SortedEnum, Enum):
+    FiveOfKind = 1
+    FourOfKind = 2
+    FullHaus = 3
+    ThreeOfKind = 4
+    TwoPair = 5
+    OnePair = 6
+    HighCard = 7
+
+class Hand:
+    ezmap = {"T": 10, "J": 11, "Q": 12, "K": 13, "A": 14}
+    def __init__(self, rep, bid, part):
+        self.rep = rep
+        self.bid = int(bid)
+        self.cl = []
+        cards = list(rep)
+        for c in cards:
+            if c in Hand.ezmap:
+                if part == 2 and c == "J":
+                    self.cl.append(1)
+                else:
+                    self.cl.append(Hand.ezmap[c])
+            else:
+                self.cl.append(int(c))
+        self.type = self.calc_type(self.cl)
+
+        if part == 2:
+            poss_alts = set(self.cl) - {1}
+            best_alt = None
+            best_type = self.type
+            for alt in poss_alts:
+                alt_cl = [alt if c == 1 else c for c in self.cl]
+                alt_type = self.calc_type(alt_cl)
+                if alt_type > best_type:
+                    best_alt = alt
+                    best_type = alt_type
+            if best_alt is not None:
+                self.type = best_type
+
+    @staticmethod
+    def calc_type(cl):
+        kcl = Counter(cl)
+        mv = max(kcl.values())
+        if len(kcl) == 1:
+            return HandType.FiveOfKind
+        elif len(kcl) == 2:
+            if mv == 4:
+                return HandType.FourOfKind
+            else:
+                assert mv == 3
+                return HandType.FullHaus
+        elif len(kcl) == 3:
+            if mv == 3:
+                return HandType.ThreeOfKind
+            else:
+                assert mv == 2
+                return HandType.TwoPair
+        elif len(kcl) == 4:
+            assert mv == 2
+            return HandType.OnePair
+        else:
+            assert len(kcl) == 5
+            return HandType.HighCard
+
+    def __str__(self):
+        return f"{self.rep} {self.bid} {self.type}"
+
+    def __repr__(self):
+        return f"<raw={self.rep} bid={self.bid} type={self.type} cl={self.cl}>"
+
+    def __lt__(self, other):
+        if self.type == other.type:
+            return self.cl < other.cl
+        else:
+            return self.type < other.type
+
+part = 2
+with open(f"{os.getcwd()}/input.txt", "r") as f:
+    hands = []
+    for l in f:
+        rep, bid = l.split()
+        h = Hand(rep, bid, part)
+        hands.append(h)
+
+    res = []
+    for i, h in enumerate(sorted(hands)):
+        res.append((h.bid, i+1))
+    print(f"part {part}: {sum([a*b for a,b in res])}")

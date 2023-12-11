@@ -430,3 +430,28 @@ with open(f"{os.getcwd()}/input.txt", "r") as f:
             lcm = (lcm * num) // math.gcd(lcm, num)
         return lcm
     print(f"part 2: {lcm_of_list(difs)}")
+
+## Problem 9
+import os
+import numpy as np
+
+with open(f"{os.getcwd()}/test.txt", "r") as f:
+    l = [np.array([int(x) for x in l.strip().split()]) for l in f.readlines()]
+
+res1 = []
+res2 = []
+for s in l:
+    seqs = [s]
+    cur = s
+    for i in range(100):
+        sd = np.diff(cur)
+        seqs.append(sd)
+        if len(np.unique(sd)) == 1:
+            break
+        else:
+            cur = sd
+    else:
+        assert False
+    ans1 = np.sum([x[-1] for x in seqs[::-1]])
+    res1.append(ans1)
+print(sum(res1))
